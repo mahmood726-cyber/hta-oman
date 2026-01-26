@@ -1,0 +1,596 @@
+Title: Guidelines for Health Technology Assessment Ministry of Health Sultanate of Oman
+
+URL Source: http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman
+
+Markdown Content:
+ISPOR - Guidelines for Health Technology Assessment Ministry of Health Sultanate of Oman
+===============
+
+![Image 1: logo](blob:http://localhost/cffea538837ef7a4789cecc771f53224)
+
+[](https://www.cookiebot.com/en/what-is-behind-powered-by-cookiebot/)
+
+*   [Consent](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)
+*   [Details](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)
+*   [[#IABV2SETTINGS#]](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)
+*   [About](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)
+
+This website uses cookies
+
+We use cookies to personalise content and ads, to provide social media features and to analyse our traffic. We also share information about your use of our site with our social media, advertising and analytics partners who may combine it with other information that you’ve provided to them or that they’ve collected from your use of their services. 
+
+Consent Selection
+
+**Strictly Necessary** 
+
+- [x] 
+
+**Preferences** 
+
+- [x] 
+
+**Statistics** 
+
+- [x] 
+
+**Marketing** 
+
+- [x] 
+
+[Show details](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)
+
+Details
+
+*   
+Strictly Necessary  29- [x]   Necessary cookies help make a website usable by enabling basic functions like page navigation and access to secure areas of the website. The website cannot function properly without these cookies. 
+
+    *   [Cloudflare 1](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 2](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://www.cloudflare.com/privacypolicy/ "Cloudflare's privacy policy")**cf.turnstile.u**This cookie is used to distinguish between humans and bots. **Maximum Storage Duration**: Persistent**Type**: HTML Local Storage   
+    *   [Google 4](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 3](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://business.safety.google/privacy/ "Google's privacy policy")Some of the data collected by this provider is for the purposes of personalization and measuring advertising effectiveness.
+
+**test_cookie**Pending**Maximum Storage Duration**: 1 day**Type**: HTTP Cookie  **rc::e**This cookie is used to distinguish between humans and bots. **Maximum Storage Duration**: Session**Type**: HTML Local Storage  **rc::h**This cookie is used to distinguish between humans and bots. **Maximum Storage Duration**: Persistent**Type**: HTML Local Storage  **__eoi**Used in order to detect spam and improve the website's security. **Maximum Storage Duration**: 180 days**Type**: HTTP Cookie   
+    *   [Higher Logic 5](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 4](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://www.higherlogic.com/legal/privacy "Higher Logic's privacy policy")**ASPSESSIONID#**Preserves users states across page requests.**Maximum Storage Duration**: Session**Type**: HTTP Cookie  **AWSALB**Registers which server-cluster is serving the visitor. This is used in context with load balancing, in order to optimize user experience. **Maximum Storage Duration**: 7 days**Type**: HTTP Cookie  **AWSALBCORS**Registers which server-cluster is serving the visitor. This is used in context with load balancing, in order to optimize user experience. **Maximum Storage Duration**: 7 days**Type**: HTTP Cookie  **AWSALBTG**Registers which server-cluster is serving the visitor. This is used in context with load balancing, in order to optimize user experience. **Maximum Storage Duration**: 7 days**Type**: HTTP Cookie  **AWSALBTGCORS**Registers which server-cluster is serving the visitor. This is used in context with load balancing, in order to optimize user experience. **Maximum Storage Duration**: 7 days**Type**: HTTP Cookie   
+    *   [LinkedIn 2](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 5](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://www.linkedin.com/legal/privacy-policy "LinkedIn's privacy policy")**bcookie**Used in order to detect spam and improve the website's security. **Maximum Storage Duration**: 1 year**Type**: HTTP Cookie  **li_gc**Stores the user's cookie consent state for the current domain**Maximum Storage Duration**: 180 days**Type**: HTTP Cookie   
+    *   [challenges.cloudflare.com vimeo.com 2](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)**_cfuvid[x2]**This cookie is a part of the services provided by Cloudflare - Including load-balancing, deliverance of website content and serving DNS connection for website operators. **Maximum Storage Duration**: Session**Type**: HTTP Cookie   
+    *   [literatumonline.com pages.ispor.org vimeo.com 3](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)**__cf_bm[x3]**This cookie is used to distinguish between humans and bots. This is beneficial for the website, in order to make valid reports on the use of their website.**Maximum Storage Duration**: 1 day**Type**: HTTP Cookie   
+    *   [pages.ispor.org 1](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)**BIGipServer#**Used to distribute traffic to the website on several servers in order to optimise response times.**Maximum Storage Duration**: Session**Type**: HTTP Cookie   
+    *   [pages.ispor.org consent.cookiebot.com 2](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)**CookieConsent[x2]**Stores the user's cookie consent state for the current domain**Maximum Storage Duration**: 1 year**Type**: HTTP Cookie   
+    *   [portal.ispor.org 5](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)**_sp_id.94b1**Keeps users logged in to the site.**Maximum Storage Duration**: 400 days**Type**: HTTP Cookie  **_sp_ses.94b1**Keeps users logged in to the site.**Maximum Storage Duration**: 1 day**Type**: HTTP Cookie  **ASP.NET_SessionId**Keeps users logged in to the site.**Maximum Storage Duration**: Session**Type**: HTTP Cookie  **isporlogin**Keeps users logged in to the site.**Maximum Storage Duration**: 1 year**Type**: HTTP Cookie  **isporpw**Keeps users logged in to the site.**Maximum Storage Duration**: 1 year**Type**: HTTP Cookie   
+    *   [www.ispor.org 4](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)**.AspNet.Cookies**Used to keep users logged in to the site.**Maximum Storage Duration**: 1 day**Type**: HTTP Cookie  **sf_site**Used for some site functionality to display the correct content.**Maximum Storage Duration**: 400 days**Type**: HTTP Cookie  **sf_timezoneoffset**Stores the user's timezone offset to display dates in the correct timezone.**Maximum Storage Duration**: Session**Type**: HTTP Cookie  **SF-TokenId**Used to keep users logged in to the site.**Maximum Storage Duration**: 1 day**Type**: HTTP Cookie   
+
+*   
+Preferences  1- [x]   Preference cookies enable a website to remember information that changes the way the website behaves or looks, like your preferred language or the region that you are in. 
+
+    *   [LinkedIn 1](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 6](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://www.linkedin.com/legal/privacy-policy "LinkedIn's privacy policy")**lidc**Registers which server-cluster is serving the visitor. This is used in context with load balancing, in order to optimize user experience. **Maximum Storage Duration**: 1 day**Type**: HTTP Cookie   
+
+*   
+Statistics  10- [x]   Statistic cookies help website owners to understand how visitors interact with websites by collecting and reporting information anonymously. 
+
+    *   [Higher Logic 1](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 7](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://www.higherlogic.com/legal/privacy "Higher Logic's privacy policy")**snowplowOutQueue_#_get**Registers statistical data on users' behaviour on the website. Used for internal analytics by the website operator. **Maximum Storage Duration**: Persistent**Type**: HTML Local Storage   
+    *   [Microsoft 2](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 8](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://privacy.microsoft.com/en-us/privacystatement "Microsoft's privacy policy")**_clck**Collects data on the user’s navigation and behavior on the website. This is used to compile statistical reports and heatmaps for the website owner.**Maximum Storage Duration**: 1 year**Type**: HTTP Cookie  **_clsk**Registers statistical data on users' behaviour on the website. Used for internal analytics by the website operator. **Maximum Storage Duration**: 1 day**Type**: HTTP Cookie   
+    *   [Vimeo 3](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 9](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://vimeo.com/privacy "Vimeo's privacy policy")**_dd_s**Registers the website's speed and performance. This function can be used in context with statistics and load-balancing.**Maximum Storage Duration**: 1 day**Type**: HTTP Cookie  **dd_cookie_test_#**Registers data on visitors' website-behaviour. This is used for internal analysis and website optimization. **Maximum Storage Duration**: 1 day**Type**: HTTP Cookie  **vuid**Collects data on the user's visits to the website, such as which pages have been read.**Maximum Storage Duration**: 2 years**Type**: HTTP Cookie   
+    *   [portal.ispor.org cdn.informz.net 4](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)**_sp_id.#[x2]**Collects data on the user's visits to the website, such as the number of visits, average time spent on the website and what pages have been loaded with the purpose of generating reports for optimising the website content.**Maximum Storage Duration**: 5 days**Type**: HTTP Cookie  **_sp_ses.#[x2]**Used by Snowplow Analytics to track how users are browsing and engaging with a website.**Maximum Storage Duration**: 5 days**Type**: HTTP Cookie   
+
+*   
+Marketing  37- [x]   Marketing cookies are used to track visitors across websites. The intention is to display ads that are relevant and engaging for the individual user and thereby more valuable for publishers and third party advertisers. 
+
+    *   [Google 11](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 10](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://business.safety.google/privacy/ "Google's privacy policy")Some of the data collected by this provider is for the purposes of personalization and measuring advertising effectiveness.
+
+**pagead/1p-user-list/#**Tracks if the user has shown interest in specific products or events across multiple websites and detects how the user navigates between sites. This is used for measurement of advertisement efforts and facilitates payment of referral-fees between websites.**Maximum Storage Duration**: Session**Type**: Pixel Tracker  **pagead/gen_204**Collects data on visitor behaviour from multiple websites, in order to present more relevant advertisement - This also allows the website to limit the number of times that they are shown the same advertisement. **Maximum Storage Duration**: Session**Type**: Pixel Tracker  **pagead/sodar[x2]**Pending**Maximum Storage Duration**: Session**Type**: Pixel Tracker  **pcs/activeview**Used by DoubleClick to determine whether website advertisement has been properly displayed - This is done to make their marketing efforts more efficient. **Maximum Storage Duration**: Session**Type**: Pixel Tracker  **pcs/view**Pending**Maximum Storage Duration**: Session**Type**: Pixel Tracker  **csi**Collects data on visitors' preferences and behaviour on the website - This information is used make content and advertisement more relevant to the specific visitor. **Maximum Storage Duration**: Session**Type**: Pixel Tracker  **_ga**Used to send data to Google Analytics about the visitor's device and behavior. Tracks the visitor across devices and marketing channels.**Maximum Storage Duration**: 2 years**Type**: HTTP Cookie  **_ga_#**Used to send data to Google Analytics about the visitor's device and behavior. Tracks the visitor across devices and marketing channels.**Maximum Storage Duration**: 2 years**Type**: HTTP Cookie  **_gcl_au**Used to measure the efficiency of the website’s advertisement efforts, by collecting data on the conversion rate of the website’s ads across multiple websites.**Maximum Storage Duration**: 3 months**Type**: HTTP Cookie  **_gcl_ls**Pending**Maximum Storage Duration**: Persistent**Type**: HTML Local Storage   
+    *   [Marketo 1](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 11](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://documents.marketo.com/legal/cookies/ "Marketo's privacy policy")**_mkto_trk**Contains data on visitor behaviour and website interaction. This is used in context with the email marketing service Marketo.com, which allows the website to target visitors via email. **Maximum Storage Duration**: 2 years**Type**: HTTP Cookie   
+    *   [Microsoft 7](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 12](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://privacy.microsoft.com/en-US/privacystatement "Microsoft's privacy policy")**_uetsid**Used to track visitors on multiple websites, in order to present relevant advertisement based on the visitor's preferences. **Maximum Storage Duration**: Persistent**Type**: HTML Local Storage  **_uetsid_exp**Contains the expiry-date for the cookie with corresponding name. **Maximum Storage Duration**: Persistent**Type**: HTML Local Storage  **_uetvid**Used to track visitors on multiple websites, in order to present relevant advertisement based on the visitor's preferences. **Maximum Storage Duration**: Persistent**Type**: HTML Local Storage  **_uetvid_exp**Contains the expiry-date for the cookie with corresponding name. **Maximum Storage Duration**: Persistent**Type**: HTML Local Storage  **MUID**Used widely by Microsoft as a unique user ID. The cookie enables user tracking by synchronising the ID across many Microsoft domains.**Maximum Storage Duration**: 1 year**Type**: HTTP Cookie  **_uetsid**Collects data on visitor behaviour from multiple websites, in order to present more relevant advertisement - This also allows the website to limit the number of times that they are shown the same advertisement. **Maximum Storage Duration**: 1 day**Type**: HTTP Cookie  **_uetvid**Used to track visitors on multiple websites, in order to present relevant advertisement based on the visitor's preferences. **Maximum Storage Duration**: 1 year**Type**: HTTP Cookie   
+    *   [YouTube 18](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 13](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://business.safety.google/privacy/ "YouTube's privacy policy")**__Secure-ROLLOUT_TOKEN**Pending**Maximum Storage Duration**: 180 days**Type**: HTTP Cookie  **__Secure-YEC**Stores the user's video player preferences using embedded YouTube video**Maximum Storage Duration**: Session**Type**: HTTP Cookie  **__Secure-YNID**Pending**Maximum Storage Duration**: 180 days**Type**: HTTP Cookie  **LAST_RESULT_ENTRY_KEY**Used to track user’s interaction with embedded content.**Maximum Storage Duration**: Session**Type**: HTTP Cookie  **LogsDatabaseV2:V#||LogsRequestsStore**Used to track user’s interaction with embedded content.**Maximum Storage Duration**: Persistent**Type**: IndexedDB  **remote_sid**Necessary for the implementation and functionality of YouTube video-content on the website. **Maximum Storage Duration**: Session**Type**: HTTP Cookie  **TESTCOOKIESENABLED**Used to track user’s interaction with embedded content.**Maximum Storage Duration**: 1 day**Type**: HTTP Cookie  **VISITOR_INFO1_LIVE**Pending**Maximum Storage Duration**: 180 days**Type**: HTTP Cookie  **YSC**Pending**Maximum Storage Duration**: Session**Type**: HTTP Cookie  **ytidb::LAST_RESULT_ENTRY_KEY**Used to track user’s interaction with embedded content.**Maximum Storage Duration**: Persistent**Type**: HTML Local Storage  **YtIdbMeta#databases**Used to track user’s interaction with embedded content.**Maximum Storage Duration**: Persistent**Type**: IndexedDB  **yt-remote-cast-available**Stores the user's video player preferences using embedded YouTube video**Maximum Storage Duration**: Session**Type**: HTML Local Storage  **yt-remote-cast-installed**Stores the user's video player preferences using embedded YouTube video**Maximum Storage Duration**: Session**Type**: HTML Local Storage  **yt-remote-connected-devices**Stores the user's video player preferences using embedded YouTube video**Maximum Storage Duration**: Persistent**Type**: HTML Local Storage  **yt-remote-device-id**Stores the user's video player preferences using embedded YouTube video**Maximum Storage Duration**: Persistent**Type**: HTML Local Storage  **yt-remote-fast-check-period**Stores the user's video player preferences using embedded YouTube video**Maximum Storage Duration**: Session**Type**: HTML Local Storage  **yt-remote-session-app**Stores the user's video player preferences using embedded YouTube video**Maximum Storage Duration**: Session**Type**: HTML Local Storage  **yt-remote-session-name**Stores the user's video player preferences using embedded YouTube video**Maximum Storage Duration**: Session**Type**: HTML Local Storage   
+
+*   Unclassified 1 Unclassified cookies are cookies that we are in the process of classifying, together with the providers of individual cookies.  
+
+    *   [Higher Logic 1](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Learn more about this provider![Image 14](blob:http://localhost/7c37f61654102a88a9be209f9569ef78)](https://www.higherlogic.com/legal/privacy "Higher Logic's privacy policy")**iz_web_trk_key**Pending**Maximum Storage Duration**: Session**Type**: HTML Local Storage   
+
+[Cross-domain consent[#BULK_CONSENT_DOMAINS_COUNT#]](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#) [#BULK_CONSENT_TITLE#]
+
+List of domains your consent applies to: [#BULK_CONSENT_DOMAINS#]
+
+Cookie declaration last updated on 1/1/26 by [Cookiebot](https://www.cookiebot.com/ "Cookiebot")
+
+[#IABV2_TITLE#]
+
+[#IABV2_BODY_INTRO#]
+
+[#IABV2_BODY_LEGITIMATE_INTEREST_INTRO#]
+
+[#IABV2_BODY_PREFERENCE_INTRO#]
+
+[#IABV2_LABEL_PURPOSES#]
+
+[#IABV2_BODY_PURPOSES_INTRO#]
+
+[#IABV2_BODY_PURPOSES#]
+
+[#IABV2_LABEL_FEATURES#]
+
+[#IABV2_BODY_FEATURES_INTRO#]
+
+[#IABV2_BODY_FEATURES#]
+
+[#IABV2_LABEL_PARTNERS#]
+
+[#IABV2_BODY_PARTNERS_INTRO#]
+
+[#IABV2_BODY_PARTNERS#]
+
+About
+
+Cookies are small text files that can be used by websites to make a user's experience more efficient.
+
+The law states that we can store cookies on your device if they are strictly necessary for the operation of this site. For all other types of cookies we need your permission.
+
+This site uses different types of cookies. Some cookies are placed by third party services that appear on our pages.
+
+You can at any time change or withdraw your consent from the Cookie Declaration on our website.
+
+Learn more about who we are, how you can contact us and how we process personal data in our Privacy Policy.
+
+ Please state your consent ID and date when you contact us regarding your consent.
+
+- [x] **Do not sell or share my personal information** 
+
+Allow all Customize Allow selection Deny
+
+[](http://www.ispor.org/home)
+
+Toggle navigation
+
+*   [About](http://www.ispor.org/about)
+*   [Get Involved](http://www.ispor.org/get-involved)
+*   [Membership](http://www.ispor.org/membership)
+*   [Manage Profile](http://www.ispor.org/membership/manage-profile)
+
+[](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Logout](http://www.ispor.org/mxt/authservice/signout)
+
+[Join/Renew](https://www.ispor.org/membership/individual-membership/join-ispor-or-renew-your-membership)
+
+Toggle navigation
+
+*   [HEOR Resources](http://www.ispor.org/heor-resources)
+    *   [HEOR Explained](http://www.ispor.org/heor-resources/about-heor)
+    *   [Top 10 HEOR Trends](http://www.ispor.org/heor-resources/top-10-heor-trends)
+    *   [HEOR by Topic](http://www.ispor.org/heor-resources/heor-by-topic-new)
+        *   [Clinical Outcomes](http://www.ispor.org/heor-resources/heor-by-topic-new/clinical-outcomes)
+        *   [Digital Health, Devices, and Diagnostics](http://www.ispor.org/heor-resources/heor-by-topic-new/digital-health-devices-and-diagnostics)
+        *   [Economic Evaluation](http://www.ispor.org/heor-resources/heor-by-topic-new/economic-evaluation)
+        *   [Epidemiology](http://www.ispor.org/heor-resources/heor-by-topic-new/epidemiology)
+        *   [Healthcare Delivery](http://www.ispor.org/heor-resources/heor-by-topic-new/healthcare-delivery)
+        *   [Health Policy](http://www.ispor.org/heor-resources/heor-by-topic-new/health-policy)
+        *   [Health Technology Assessment](http://www.ispor.org/heor-resources/heor-by-topic-new/health-technology-assessment)
+        *   [Methodology](http://www.ispor.org/heor-resources/heor-by-topic-new/methodology)
+        *   [Patient-Centered Research](http://www.ispor.org/heor-resources/heor-by-topic-new/patient-centered-research)
+        *   [Real-World Data](http://www.ispor.org/heor-resources/heor-by-topic-new/real-world-data)
+        *   [Specialized Treatment Areas](http://www.ispor.org/heor-resources/heor-by-topic-new/specialized-treatment-areas)
+
+    *   [Good Practices Reports & More](http://www.ispor.org/heor-resources/good-practices)
+        *   [CHEERS](http://www.ispor.org/heor-resources/good-practices/cheers)
+            *   [CHEERS Related Videos](http://www.ispor.org/heor-resources/good-practices/cheers/cheers-related-videos)
+
+    *   [ISPOR Presentations Database](http://www.ispor.org/heor-resources/presentations-database)
+        *   [ISPOR Presentations Database](http://www.ispor.org/heor-resources/presentations-database/search)
+
+    *   [US Healthcare System Overview](http://www.ispor.org/heor-resources/us-healthcare-system-overview)
+        *   [Background](http://www.ispor.org/heor-resources/us-healthcare-system-overview/background)
+        *   [Decision Makers and Influencers](http://www.ispor.org/heor-resources/us-healthcare-system-overview/decision-makers-and-influencers)
+        *   [Medical Devices and In Vitro Diagnostics](http://www.ispor.org/heor-resources/us-healthcare-system-overview/medical-devices-in-vitro-diagnostics)
+        *   [Documentation Requirements](http://www.ispor.org/heor-resources/us-healthcare-system-overview/documentation-requirements)
+        *   [Resources](http://www.ispor.org/heor-resources/us-healthcare-system-overview/resources)
+        *   [Contributors](http://www.ispor.org/heor-resources/us-healthcare-system-overview/contributors)
+        *   [References](http://www.ispor.org/heor-resources/us-healthcare-system-overview/references)
+
+    *   [News](http://www.ispor.org/heor-resources/news-top)
+        *   [HEOR News Desk](http://www.ispor.org/heor-resources/news-top/heor-news-desk)
+        *   [ISPOR News](http://www.ispor.org/heor-resources/news-top/news)
+            *   [Archive](http://www.ispor.org/heor-resources/news-top/news/archive)
+                *   [2024](http://www.ispor.org/heor-resources/news-top/news/archive/2024)
+                *   [2023](http://www.ispor.org/heor-resources/news-top/news/archive/2023)
+                *   [2022](http://www.ispor.org/heor-resources/news-top/news/archive/2022)
+
+            *   [Media Center](http://www.ispor.org/heor-resources/news-top/news/media-center)
+
+*   [Strategic Initiatives](http://www.ispor.org/strategic-initiatives)
+    *   [Strategy](http://www.ispor.org/strategic-initiatives/strategy)
+        *   [ISPOR Institute](http://www.ispor.org/strategic-initiatives/strategy/ispor-institute)
+        *   [Strategic Plan](http://www.ispor.org/strategic-initiatives/strategy/strategic-plan)
+        *   [Science Strategy](http://www.ispor.org/strategic-initiatives/strategy/science-strategy)
+
+    *   [Additional Strategic Initiatives](http://www.ispor.org/strategic-initiatives/more)
+        *   [Corporate Partnerships](http://www.ispor.org/strategic-initiatives/more/corporate-partnerships)
+            *   [Partnership Group](http://www.ispor.org/strategic-initiatives/more/corporate-partnerships/partnership-group)
+
+        *   [Diversity at ISPOR](http://www.ispor.org/strategic-initiatives/more/diversity-at-ispor)
+            *   [Diversity Metrics](http://www.ispor.org/strategic-initiatives/more/diversity-at-ispor/diversity-metrics)
+            *   [What You Can Do for Diversity](http://www.ispor.org/strategic-initiatives/more/diversity-at-ispor/what-you-can-do)
+
+        *   [HEOR Competencies Framework](http://www.ispor.org/strategic-initiatives/more/heor-competencies-framework)
+        *   [Women in HEOR](http://www.ispor.org/strategic-initiatives/more/women-in-heor)
+            *   [Women in HEOR Resources](http://www.ispor.org/strategic-initiatives/more/women-in-heor/women-in-heor-resources)
+            *   [Member Survey](http://www.ispor.org/strategic-initiatives/more/women-in-heor/member-survey)
+
+    *   [Topics](http://www.ispor.org/strategic-initiatives/topics)
+        *   [Artificial Intelligence](http://www.ispor.org/strategic-initiatives/topics/artificial-intelligence)
+        *   [Dialogue With Decision Makers](http://www.ispor.org/strategic-initiatives/topics/dialogue-with-decision-makers)
+        *   [Digital Health](http://www.ispor.org/strategic-initiatives/topics/digital-health)
+        *   [Health Policy](http://www.ispor.org/strategic-initiatives/topics/health-policy)
+        *   [Health Technology Assessment](http://www.ispor.org/strategic-initiatives/topics/health-technology-assessment)
+        *   [Impact of HEOR](http://www.ispor.org/strategic-initiatives/topics/amplifying-the-impact-of-heor)
+            *   [ISPOR Chapters Delivering Impact](http://www.ispor.org/strategic-initiatives/topics/amplifying-the-impact-of-heor/ispor-chapters-delivering-impact)
+            *   [Delivering Impact in Europe](http://www.ispor.org/strategic-initiatives/topics/amplifying-the-impact-of-heor/delivering-impact-in-europe)
+            *   [Delivering Impact in North America](http://www.ispor.org/strategic-initiatives/topics/amplifying-the-impact-of-heor/delivering-impact-in-north-america)
+
+        *   [LMICs](http://www.ispor.org/strategic-initiatives/topics/lmics)
+        *   [Patient Engagement](http://www.ispor.org/strategic-initiatives/topics/patient-initiatives)
+            *   [Patient Representatives Roundtable](http://www.ispor.org/strategic-initiatives/topics/patient-initiatives/patient-representatives-roundtable)
+            *   [Patient Centered Special Interest Group](http://www.ispor.org/strategic-initiatives/topics/patient-initiatives/patient-centered-special-interest-group)
+
+        *   [Payer Engagement](http://www.ispor.org/strategic-initiatives/topics/payer-engagement-in-heor)
+        *   [Real-World Evidence](http://www.ispor.org/strategic-initiatives/topics/real-world-evidence)
+            *   [About Real-World Evidence](http://www.ispor.org/strategic-initiatives/topics/real-world-evidence/about-real-world-evidence)
+            *   [Real-World Evidence Transparency Initiative](http://www.ispor.org/strategic-initiatives/topics/real-world-evidence/real-world-evidence-transparency-initiative)
+            *   [Real-World Evidence Registry](http://www.ispor.org/strategic-initiatives/topics/real-world-evidence/real-world-evidence-registry)
+
+        *   [Value Assessment](http://www.ispor.org/strategic-initiatives/topics/value-assessment-frameworks)
+        *   [Whole Health](http://www.ispor.org/strategic-initiatives/topics/whole-health)
+
+*   [Events](http://www.ispor.org/conferences-education)
+    *   [Conferences & Events](http://www.ispor.org/conferences-education/conferences)
+        *   [Upcoming Conferences & Events](http://www.ispor.org/conferences-education/conferences/upcoming-conferences)
+            *   [ISPOR 2026](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026)
+                *   [About](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/about)
+                    *   [Why Attend](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/about/why-attend)
+                    *   [Volunteer Opportunities](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/about/volunteer-opportunities)
+                    *   [Registration Information](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/about/registration-information)
+                    *   [Marketing Kit](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/about/marketing-kit)
+                        *   [ISPOR 2026 Badges](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/about/marketing-kit/badges)
+                        *   [#ISPORAnnual—Tweet, Post, Share!](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/about/marketing-kit/social-media)
+                        *   [Spread the Word](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/about/marketing-kit/spread-the-word)
+
+                    *   [Press](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/about/press)
+
+                *   [Program](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/program)
+                    *   [Preliminary Program](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/program/preliminary-program)
+                    *   [Student Program](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/program/student-program)
+                    *   [Learning Formats](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/program/learning-formats)
+
+                *   [Abstract Information](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/abstract-information)
+                *   [Exhibits & Sponsorship](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/exhibits---sponsorship)
+                    *   [Exhibitor Resources](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/exhibits---sponsorship/exhibitor-resources)
+                    *   [Exhibitor Directory](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/exhibits---sponsorship/exhibitor-director)
+                    *   [Sponsors](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/exhibits---sponsorship/sponsors)
+                    *   [Affiliate Events](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/exhibits---sponsorship/affiliate-events)
+
+                *   [Hotel & Travel](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/hotel)
+                    *   [Hotel Information](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/hotel/hotel---travel)
+                    *   [Venue Information](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/hotel/venue-information)
+                    *   [Discover Philadelphia](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-2026/hotel/discover-philadelphia)
+
+            *   [ISPOR Healthcare Investment Summit 2026](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026)
+                *   [About](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/about)
+                    *   [Why Attend](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/about/why-attend)
+                    *   [Registration Information](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/about/registration-information)
+                    *   [Press](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/about/press)
+
+                *   [Program](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/program)
+                    *   [Preliminary Program](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/program/preliminary-program)
+                    *   [Program Committee](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/program/program-committee)
+
+                *   [Sponsorship](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/sponsorship)
+                *   [Venue and Travel](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/venue-and-travel)
+                    *   [Hotel & Venue Information](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-healthcare-investment-summit-2026/venue-and-travel/hotel---venue-information)
+
+            *   [ISPOR Europe 2026](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026)
+                *   [About](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/about)
+                    *   [Why Attend](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/about/why-attend)
+                    *   [Volunteer Opportunities](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/about/volunteer-opportunities)
+                    *   [Press](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/about/press)
+
+                *   [Program](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/program)
+                    *   [Preliminary Program](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/program/preliminary-program)
+                    *   [Student Program](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/program/student-program)
+                    *   [Learning Formats](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/program/learning-formats)
+
+                *   [Abstract Information](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/abstract-information)
+                *   [Exhibits & Sponsorship](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/exhibits---sponsorship)
+                    *   [Sponsors](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/exhibits---sponsorship/sponsors)
+
+                *   [Hotel & Travel](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/hotel---travel)
+                    *   [Hotel Information](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/hotel---travel/hotel-information)
+                    *   [Venue Information](http://www.ispor.org/conferences-education/conferences/upcoming-conferences/ispor-europe-2026/hotel---travel/venue-information)
+
+        *   [Upcoming](http://www.ispor.org/conferences-education/conferences/upcoming)
+        *   [Past](http://www.ispor.org/conferences-education/conferences/recent-conferences)
+        *   [Abstract Information](http://www.ispor.org/conferences-education/conferences/abstract-information)
+        *   [Awards & Grants](http://www.ispor.org/conferences-education/conferences/awards)
+            *   [Criteria - Podium Research Presentation Awards](http://www.ispor.org/conferences-education/conferences/awards/criteria---podium-research-presentation-awards)
+            *   [Criteria - Poster Research Presentation Awards](http://www.ispor.org/conferences-education/conferences/awards/criteria---poster-research-presentation-awards)
+
+        *   [Exhibits & Sponsorships](http://www.ispor.org/conferences-education/conferences/exhibits-sponsorships)
+        *   [Register](http://www.ispor.org/conferences-education/conferences/register)
+        *   [Press Kit](http://www.ispor.org/conferences-education/conferences/Press-Kit)
+
+    *   [Calendar](http://www.ispor.org/conferences-education/calendar)
+
+*   [Education](http://www.ispor.org/education-training)
+    *   [Short Courses](http://www.ispor.org/education-training/short-courses)
+    *   [ISPOR Education Center](http://www.ispor.org/education-training/ispor-education-center)
+    *   [HEOR Learning Lab](http://www.ispor.org/education-training/heor-learning-lab)
+    *   [Webinars](http://www.ispor.org/education-training/webinars)
+        *   [Value Assessment in the Age of COVID-19: Meeting the Challenges](http://www.ispor.org/education-training/webinars/value-assessment-in-the-age-of-covid-19-meeting-the-challenges)
+        *   [Value Assessment in Alzheimer's Disease: A Focus on Equity](http://www.ispor.org/education-training/webinars/value-assessment-in-alzheimers-disease-a-focus-on-equity)
+
+*   [Publications](http://www.ispor.org/publications)
+    *   [Journals](http://www.ispor.org/publications/journals)
+        *   [Value in Health](http://www.ispor.org/publications/journals/value-in-health)
+            *   [About the Editors](http://www.ispor.org/publications/journals/value-in-health/vih-about-the-editors)
+            *   [For Authors](http://www.ispor.org/publications/journals/value-in-health/for-authors)
+                *   [About the Journal](http://www.ispor.org/publications/journals/value-in-health/for-authors/about-the-journal)
+                *   [Call for Papers](http://www.ispor.org/publications/journals/value-in-health/for-authors/call-for-papers)
+                *   [Submit](http://www.ispor.org/publications/journals/value-in-health/for-authors/submit)
+                *   [Instructions for Authors](http://www.ispor.org/publications/journals/value-in-health/for-authors/guide-for-authors)
+
+            *   [Issue Archives](http://www.ispor.org/publications/journals/value-in-health/vih-archives)
+            *   [Special Collections](http://www.ispor.org/publications/journals/value-in-health/virtual-collections)
+                *   [Editor's Choice](http://www.ispor.org/publications/journals/value-in-health/virtual-collections/editor-choice)
+                *   [Themed Sections](http://www.ispor.org/publications/journals/value-in-health/virtual-collections/themed-sections)
+                *   [Topical Collections](http://www.ispor.org/publications/journals/value-in-health/virtual-collections/topical-collections)
+
+            *   [Awards](http://www.ispor.org/publications/journals/value-in-health/vih-paper-of-the-year-award)
+
+        *   [Value in Health Regional Issues](http://www.ispor.org/publications/journals/value-in-health-regional-issues)
+            *   [Regions](http://www.ispor.org/publications/journals/value-in-health-regional-issues/regions)
+            *   [About The Editors](http://www.ispor.org/publications/journals/value-in-health-regional-issues/editorial-board)
+            *   [For Authors](http://www.ispor.org/publications/journals/value-in-health-regional-issues/for-authors)
+                *   [About the Journal](http://www.ispor.org/publications/journals/value-in-health-regional-issues/for-authors/about-the-journal)
+                *   [Call for Papers](http://www.ispor.org/publications/journals/value-in-health-regional-issues/for-authors/call-for-papers)
+                *   [Submit](http://www.ispor.org/publications/journals/value-in-health-regional-issues/for-authors/submit)
+                *   [Instructions for Authors](http://www.ispor.org/publications/journals/value-in-health-regional-issues/for-authors/guide-for-authors)
+
+            *   [Issue Archives](http://www.ispor.org/publications/journals/value-in-health-regional-issues/issue-archives)
+            *   [Awards](http://www.ispor.org/publications/journals/value-in-health-regional-issues/ispor-vihri-excellent-article-award)
+            *   [Special Collections](http://www.ispor.org/publications/journals/value-in-health-regional-issues/virtual-collections)
+                *   [Viruses and Vaccines](http://www.ispor.org/publications/journals/value-in-health-regional-issues/virtual-collections/viruses-and-vaccines)
+                *   [Editor's Choice](http://www.ispor.org/publications/journals/value-in-health-regional-issues/virtual-collections/editors-choice)
+                *   [Topical Collections](http://www.ispor.org/publications/journals/value-in-health-regional-issues/virtual-collections/topical-collections)
+                *   [Themed Sections](http://www.ispor.org/publications/journals/value-in-health-regional-issues/virtual-collections/themed-sections)
+
+        *   [Value & Outcomes Spotlight](http://www.ispor.org/publications/journals/value-outcomes-spotlight)
+            *   [About the Editors](http://www.ispor.org/publications/journals/value-outcomes-spotlight/VOS-About-the-Editors)
+            *   [For Authors](http://www.ispor.org/publications/journals/value-outcomes-spotlight/for-authors)
+                *   [About the Journal](http://www.ispor.org/publications/journals/value-outcomes-spotlight/for-authors/about-the-journal)
+                *   [Submit](http://www.ispor.org/publications/journals/value-outcomes-spotlight/for-authors/submit)
+                *   [Instructions for Authors](http://www.ispor.org/publications/journals/value-outcomes-spotlight/for-authors/editorial-policy)
+
+            *   [Value and Outcomes Spotlight Archives](http://www.ispor.org/publications/journals/value-outcomes-spotlight/vos-archives)
+            *   [Issue Archives: pre-2020](http://www.ispor.org/publications/journals/value-outcomes-spotlight/vos-archives-pre-2020)
+
+    *   [Call for Reviewers](http://www.ispor.org/publications/call-for-reviewers)
+
+*   [Member Groups](http://www.ispor.org/member-groups)
+    *   [Special Interest Groups](http://www.ispor.org/member-groups/special-interest-groups)
+        *   [Clinical Outcome Assessment](http://www.ispor.org/member-groups/special-interest-groups/clinical-outcome-assessment)
+        *   [Digital Health](http://www.ispor.org/member-groups/special-interest-groups/digital-health)
+            *   [Digital Health Terms and Definitions Monographs](http://www.ispor.org/member-groups/special-interest-groups/digital-health/digital-health-terms-and-definitions-monographs)
+
+        *   [Emerging and Orphan Therapies](http://www.ispor.org/member-groups/special-interest-groups/emerging-and-orphan-therapies)
+        *   [Environmental Assessment in HEOR](http://www.ispor.org/member-groups/special-interest-groups/environmental-assessment-in-heor)
+        *   [Global Access to Medical Innovation](http://www.ispor.org/member-groups/special-interest-groups/global-access-to-medical-innovation)
+        *   [Health Equity Research](http://www.ispor.org/member-groups/special-interest-groups/health-equity-research)
+        *   [Health Preference Research](http://www.ispor.org/member-groups/special-interest-groups/health-preference-research)
+        *   [Medical Devices and Diagnostics](http://www.ispor.org/member-groups/special-interest-groups/medical-devices-and-diagnostics)
+            *   [Medical Device & Diagnostics Terms and Definitions Monographs](http://www.ispor.org/member-groups/special-interest-groups/medical-devices-and-diagnostics/medical-device-diagnostics-terms-and-definitions-monographs)
+
+        *   [Medication Adherence and Persistence](http://www.ispor.org/member-groups/special-interest-groups/medication-adherence-and-persistence)
+        *   [Oncology](http://www.ispor.org/member-groups/special-interest-groups/oncology)
+        *   [Patient-Centered](http://www.ispor.org/member-groups/special-interest-groups/patient-centered)
+        *   [Real-World Evidence (RWE)](http://www.ispor.org/member-groups/special-interest-groups/real-world-evidence-rwe)
+        *   [Statistical Methods in HEOR](http://www.ispor.org/member-groups/special-interest-groups/statistical-methods)
+            *   [Statistical Terms and Definitions Monographs](http://www.ispor.org/member-groups/special-interest-groups/statistical-methods/statistical-terms-and-definitions-monographs)
+
+    *   [Task Forces](http://www.ispor.org/member-groups/task-forces)
+        *   [GenAI for HEOR SLRs Task Force](http://www.ispor.org/member-groups/task-forces/genai-for-heor-slrs-task-force)
+        *   [Model Validation II Task Force](http://www.ispor.org/member-groups/task-forces/model-validation-ii-task-force)
+        *   [Patient Reported Outcomes (PROs) in Prospective Real World Study Design](http://www.ispor.org/member-groups/task-forces/patient-reported-outcomes-prospective-real-world-study-design)
+        *   [Performance Outcome (PerfO) Assessments](http://www.ispor.org/member-groups/task-forces/performance-outcome-perfo-assessments)
+        *   [Preference Heterogeneity in Stated Choice Data](http://www.ispor.org/member-groups/task-forces/preference-heterogeneity-in-stated-choice-data)
+        *   [Surrogate Endpoint Statistical Evaluation for HTA Decision Making](http://www.ispor.org/member-groups/task-forces/surrogate-endpoint-statistical-assessment-for-hta-decision-making)
+        *   [Valuing HRQoL of Children & Adolescents in Economic Evaluation (Pediatric Utilities)](http://www.ispor.org/member-groups/task-forces/Valuing-HRQoL-of-Children-Adolescents-in-Economic-Models)
+        *   [Value-Based Healthcare Implementation Special Task Force](http://www.ispor.org/member-groups/task-forces/value-based-healthcare-implementation)
+
+    *   [Councils & Roundtables](http://www.ispor.org/member-groups/councils-roundtables)
+        *   [Awards Council](http://www.ispor.org/member-groups/councils-roundtables/awards-council)
+        *   [Education Council](http://www.ispor.org/member-groups/councils-roundtables/education-council)
+            *   [Education Council Leadership](http://www.ispor.org/member-groups/councils-roundtables/education-council/education-council-leadership)
+
+        *   [Faculty Advisor Council](http://www.ispor.org/member-groups/councils-roundtables/ispor-faculty-advisor-council)
+            *   [Faculty Advisor Council – Professional Development Focus Group](http://www.ispor.org/member-groups/councils-roundtables/ispor-faculty-advisor-council/fellowship-focus-group)
+            *   [Faculty Advisor Council Resources](http://www.ispor.org/member-groups/councils-roundtables/ispor-faculty-advisor-council/ispor-student-network-faculty-advisors-directory)
+            *   [Faculty Advisor Council – Member Engagement Focus Group](http://www.ispor.org/member-groups/councils-roundtables/ispor-faculty-advisor-council/member-engagement-focus-group)
+
+        *   [Global Engagement Council](http://www.ispor.org/member-groups/councils-roundtables/global-engagement-council)
+            *   [Global Engagement Council Leadership](http://www.ispor.org/member-groups/councils-roundtables/global-engagement-council/global-engagement-council-leadership)
+
+        *   [Health Science Policy Council](http://www.ispor.org/member-groups/councils-roundtables/health-science-policy-council)
+            *   [Health Science Policy Council Leadership](http://www.ispor.org/member-groups/councils-roundtables/health-science-policy-council/health-science-policy-council-leadership)
+
+        *   [Health Technology Assessment Council](http://www.ispor.org/member-groups/councils-roundtables/health-technology-assessment-council)
+            *   [Health Technology Assessment Good Practices Recommendation](http://www.ispor.org/member-groups/councils-roundtables/health-technology-assessment-council/health-technology-assessment-good-practices-recommendation)
+            *   [Health Technology Assessment Roundtables](http://www.ispor.org/member-groups/councils-roundtables/health-technology-assessment-council/health-technology-assessment-roundtables)
+            *   [Living Health Technology Assessment (HTA)](http://www.ispor.org/member-groups/councils-roundtables/health-technology-assessment-council/living-health-technology-assessment)
+
+        *   [Past Presidents Council](http://www.ispor.org/member-groups/councils-roundtables/past-presidents-council)
+        *   [Patient Council](http://www.ispor.org/member-groups/councils-roundtables/patient-council)
+            *   [Patient Representatives Roundtables](http://www.ispor.org/member-groups/councils-roundtables/patient-council/patient-representatives-roundtables)
+                *   [Photo Gallery](http://www.ispor.org/member-groups/councils-roundtables/patient-council/patient-representatives-roundtables/photo-gallery)
+
+        *   [Publications Council](http://www.ispor.org/member-groups/councils-roundtables/publications-council)
+
+    *   [Global Groups](http://www.ispor.org/member-groups/global-groups)
+        *   [Consortia](http://www.ispor.org/member-groups/global-groups/consortia)
+            *   [Asia Consortium](http://www.ispor.org/member-groups/global-groups/consortia/asia-consortium)
+                *   [Asia Consortium Executive Committee](http://www.ispor.org/member-groups/global-groups/consortia/asia-consortium/executive-committee)
+                *   [Asia Consortium Industry Committee](http://www.ispor.org/member-groups/global-groups/consortia/asia-consortium/industry-committee)
+
+            *   [Central & Eastern Europe Consortium](http://www.ispor.org/member-groups/global-groups/consortia/central-eastern-europe-consortium)
+                *   [Central & Eastern Europe Consortium Executive Committee](http://www.ispor.org/member-groups/global-groups/consortia/central-eastern-europe-consortium/executive-committee)
+
+            *   [Latin America Consortium](http://www.ispor.org/member-groups/global-groups/consortia/latin-america-consortium)
+                *   [Latin America Consortium Executive Committee](http://www.ispor.org/member-groups/global-groups/consortia/latin-america-consortium/executive-committee)
+
+        *   [Networks](http://www.ispor.org/member-groups/global-groups/networks)
+            *   [Africa Network](http://www.ispor.org/member-groups/global-groups/networks/africa-network)
+                *   [Africa Network Executive Committee](http://www.ispor.org/member-groups/global-groups/networks/africa-network/executive-committee)
+
+            *   [Arabic Network](http://www.ispor.org/member-groups/global-groups/networks/arabic-network)
+                *   [Arabic Network Executive Committee](http://www.ispor.org/member-groups/global-groups/networks/arabic-network/executive-committee)
+                *   [ISPOR Dubai 2018](http://www.ispor.org/member-groups/global-groups/networks/arabic-network/ispor-dubai-2018)
+
+            *   [Regional Network Policies and Procedures](http://www.ispor.org/member-groups/global-groups/networks/regional-network-policies-and-procedures)
+
+        *   [Regional Chapters](http://www.ispor.org/member-groups/global-groups/regional-chapters)
+            *   [Regional Chapter Resource Center](http://www.ispor.org/member-groups/global-groups/regional-chapters/regional-chapter-resource-center)
+                *   [ISPOR Chapter Leadership Webinar](http://www.ispor.org/member-groups/global-groups/regional-chapters/regional-chapter-resource-center/ispor-chapter-leadership-webinar)
+
+        *   [Join an ISPOR Global Member Group](http://www.ispor.org/member-groups/global-groups/join-an-ispor-global-member-group)
+
+    *   [Students](http://www.ispor.org/member-groups/students)
+        *   [Apply For/Renew Membership](http://www.ispor.org/member-groups/students/apply-renew-membership)
+        *   [Student Council](http://www.ispor.org/member-groups/students/student-council)
+        *   [Student Chapters](http://www.ispor.org/member-groups/students/student-chapters)
+        *   [Student Network Committees](http://www.ispor.org/member-groups/students/student-network-committees)
+        *   [Webinars](http://www.ispor.org/member-groups/students/webinars)
+        *   [Student Newsletters](http://www.ispor.org/member-groups/students/student-newsletters)
+
+    *   [New Professionals](http://www.ispor.org/member-groups/new-professionals)
+        *   [Professional Development Resources](http://www.ispor.org/member-groups/new-professionals/professional-development-resources)
+            *   [What is the Impact of GDPR on the HEOR Community](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/what-is-the-impact-of-gdpr-on-the-heor-community)
+            *   [Good Practices for HTA - What is out there and how do I use it](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/good-practices-for-hta---what-is-out-there-and-how-do-i-use-it)
+            *   [ISPOR & AACP Joint Webinar – “Tips for Securing a Post-Doctoral Fellowship”](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/ispor-aacp-joint-webinar-tips-for-securing-a-post-doctoral-fellowship)
+            *   [You Are Creative: Research is the First Step](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/you-are-creative-research-is-the-first-step)
+            *   [Good Practices for a Successful Job Search](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/good-practices-for-a-successful-job-search)
+            *   [Leveraging The Power Of LinkedIn](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/leveraging-the-power-of-linkedin)
+            *   [Internships & Fellowships: Career Opportunities for the Future](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/internships-fellowships-career-opportunities-for-the-future)
+            *   [My Career Path](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/my-career-path)
+            *   [Career Advice Across the Globe](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/career-advice-across-the-globe)
+            *   ["My ISPOR Story" - Zeba Khan](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/my-ispor-story---zeba-khan)
+            *   ["My ISPOR Story" - Lou Garrison](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/my-ispor-story---lou-garrison)
+            *   [Replicate, Regulate, and Redefine: RWE Use Cases in the Next Decade - Session 1](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/replicate-regulate-and-redefine-rwe-use-cases-in-the-next-decade)
+            *   [Replicate, Regulate, and Redefine: RWE Use Cases in the Next Decade - Session 2](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/replicate-regulate-and-redefine-rwe-use-cases-in-the-next-decade---session-2)
+            *   [Replicate, Regulate, and Redefine: RWE Use Cases in the Next Decade - Session 3](http://www.ispor.org/member-groups/new-professionals/professional-development-resources/replicate-regulate-and-redefine-rwe-use-cases-in-the-next-decade---session-3)
+
+    *   [Online Communities](http://www.ispor.org/member-groups/online-communities)
+
+*   [About](http://www.ispor.org/about)
+*   [Get Involved](http://www.ispor.org/get-involved)
+*   [Membership](http://www.ispor.org/membership)
+*   [Manage Profile](http://www.ispor.org/membership/manage-profile)
+
+[](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman#)[Logout](http://www.ispor.org/mxt/authservice/signout)
+
+[Join/Renew](https://www.ispor.org/membership/individual-membership/join-ispor-or-renew-your-membership)
+
+*   [Home](http://www.ispor.org/)
+*   [HEOR Resources](http://www.ispor.org/heor-resources)
+*   [ISPOR Presentations Database](http://www.ispor.org/heor-resources/presentations-database)
+
+Guidelines for Health Technology Assessment Ministry of Health Sultanate of Oman
+================================================================================
+
+Guidelines for Health Technology Assessment Ministry of Health Sultanate of Oman
+
+Author(s)
+---------
+
+**Said Al Rashdi, BSc, MSc**1, Asiya AL Kindi, BSc, MSc 2, IBRAHIM AL RASHDI, BSc, MSc 3, Adnan AL Qassabi, BSc, MSc 4, Manal Al Ansari, BSc, MSc 5, Safiya Al Muaini, BSc, MSc 1, Sara Al Balushi, BSc, MSc 1, Alia Al Suhaily, BSc, MSc 1, Ahmad Fasseeh, PhD 6, Zoltán Kaló, PhD 7. 
+
+1 Directorate general of medical supply, Ministry of Health - Oman, Muscat, Oman, 2 Directorate general of medical supply, Minsitry Of Health Oman, Muscat, Oman, 3 Drug Safety Center, Ministry of Health - Oman, MUSCAT, Oman, 4 ROYAL HOSPITAL, Ministry of Health - Oman, Muscat, Oman, 5 Directorate general of medical supply, Ministry of Health of Oman, Muscat, Oman, 6 Syreon Middle East, Alexandria, Egypt, 7 Semmelweis University, Budapest, Hungary.
+
+Presentation Documents
+----------------------
+
+*   [ISPOREurope25_Wani_ HTA167.pdf](https://www.ispor.org/docs/default-source/cti-meeting-21305-documents/dc9b1b1e-1c0b-44b9-9859-6df40f8f5d86.pdf?sfvrsn=79d8d654_0)
+
+**OBJECTIVES:** Health Technology Assessment (HTA) plays a crucial role for optimal allocation of healthcare resources by providing decision-making, evidence-based information regarding healthcare technologies. Our intention was to create HTA methodological guidelines for Oman with the involvement of key stakeholders to facilitate consistency, transparency and robustness in appraisal process of health technologies.
+
+**METHODS:** Guideline development included five steps: (1) learnings from international HTA guidelines; (2) multistakeholder workshop on key components of the Omani methodological guidelines; (3) survey to facilitate consensus on the most critical elements; (4) drafting of guidelines based on collected observations; and (5) validation through feedback from policy-makers and HTA experts.
+
+**RESULTS:** The Omani HTA guidelines consists of six sections, including targeted indication, medical assessment, economic evaluation, budget impact analysis, social and ethical considerations, and transparency requirements. Evaluation of health benefits should primarily focus on policy-relevant outcomes, including mortality, morbidity, and quality of life, and utilizing the clinical assessment reports published by reputable HTA agencies is advocated. If the investigated health technology generates health gain to a policy relevant comparator, cost-utility analysis with quality-adjusted life years calculation, 3% discount rate for costs and outcomes and explicit cost-effectiveness thresholds is the preferred methods to judge the economic value of health technologies. The time horizon of budget impact analysis should cover a four-year period. Full disclosure of conflicts of interest, expert contributions, and a public version of HTA dossiers are mandatory to enhance transparency.
+
+**CONCLUSIONS:** Acceptance of HTA methodological guidelines by the Ministry of Health represents an important milestone in improving the evidence base of policy decisions in Oman and provides a standardized and transparent approach to judge the value and affordability of health technologies, aligning with international best practices and local healthcare needs and priorities.
+
+Conference/Value in Health Info
+-------------------------------
+
+ 2025-11, ISPOR Europe 2025, Glasgow, Scotland 
+
+Value in Health, Volume 28, Issue S2
+
+Code
+----
+
+HTA167
+
+Topic
+-----
+
+Economic Evaluation, Health Policy & Regulatory, Health Technology Assessment
+
+Topic Subcategory
+-----------------
+
+Systems & Structure, Value Frameworks & Dossier Format
+
+Disease
+-------
+
+No Additional Disease & Conditions/Specialized Treatment Areas
+
+##### Quick Links
+
+* * *
+
+*   [About](http://www.ispor.org/about)
+*   [Media Center](http://www.ispor.org/heor-resources/news-top/news/media-center)
+*   [Exhibits & Sponsorships](http://www.ispor.org/conferences-education/conferences/exhibits-sponsorships)
+*   [Contact Us](http://www.ispor.org/about/contact-us)
+
+##### Policies & Legal
+
+* * *
+
+*   [AI Policy](http://www.ispor.org/ai-policy)
+*   [Antitrust Compliance](http://www.ispor.org/antitrust-compliance)
+*   [Code of Ethics](http://www.ispor.org/code-of-ethics)
+*   [Cookie Policy](http://www.ispor.org/cookie-policy)
+*   [Diversity Policy](http://www.ispor.org/about/our-society/diversity-policy)
+*   [Funding Statement](http://www.ispor.org/funding-statement)
+*   [Legal Disclaimer](http://www.ispor.org/legal-disclaimer)
+*   [Privacy Policy](http://www.ispor.org/privacy-policy)
+*   [Terms and Conditions](http://www.ispor.org/terms-and-conditions)
+
+[Subscribe](http://www.ispor.org/about/contact-us/subscribe)
+
+[Join ISPOR](http://www.ispor.org/join-ispor)
+
+* * *
+
+ISPOR–The Professional Society for 
+
+Health Economics and Outcomes Research
+---------------------------------------------------------------------------
+
+[](mailto:info@ispor.org?subject=Mail%20from%20ISPOR%20web%20site "email")[](https://www.linkedin.com/company/ISPORorg "LinkedIn")[](http://www.facebook.com/pages/International-Society-for-Pharmacoeconomics-and-Outcomes-Research-ISPOR/100220853389399 "FaceBook")[](https://twitter.com/ispororg "Twitter")[](http://www.youtube.com/user/ISPORorg "YouTube")[](https://www.instagram.com/ISPORorg/ "Instagram")
+
+Copyright © 2026[ISPOR](http://www.ispor.org/home). All rights reserved.
+
+International Society for Pharmacoeconomics and Outcomes Research, Inc
+
+Website Design & Development by [Matrix Group](https://www.matrixgroup.net/)
+
+###### Your browser is out-of-date
+
+ISPOR recommends that you update your browser for more security, speed and the best experience on ispor.org. [Update my browser now](http://outdatedbrowser.com/)
+
+[×](http://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman# "Close")

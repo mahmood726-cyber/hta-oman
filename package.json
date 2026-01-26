@@ -1,0 +1,40 @@
+{
+  "name": "hta-oman",
+  "version": "0.6.0",
+  "description": "Oman HTA Platform - Health Technology Assessment Application",
+  "main": "index.html",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.js",
+    "build": "node scripts/build.js",
+    "serve": "npx serve ."
+  },
+  "keywords": ["hta", "health-economics", "markov", "meta-analysis", "cost-effectiveness"],
+  "author": "HTA Artifact Standard Contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "@types/jest": "^29.5.12",
+    "eslint": "^8.57.0",
+    "fast-check": "^3.15.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "roots": ["<rootDir>/tests"],
+    "collectCoverageFrom": ["src/**/*.js"],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    },
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    }
+  }
+}
