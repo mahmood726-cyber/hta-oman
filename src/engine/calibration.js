@@ -824,6 +824,8 @@ class CalibrationEngine {
 // Export
 if (typeof window !== 'undefined') {
     window.CalibrationEngine = CalibrationEngine;
+    window.Calibration = CalibrationEngine;
+    window.ModelCalibration = CalibrationEngine;
 }
 
 if (typeof module !== 'undefined' && module.exports) {

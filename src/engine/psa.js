@@ -1345,6 +1345,8 @@ class ConvergenceDiagnostics {
 // Export
 if (typeof window !== 'undefined') {
     window.PSAEngine = PSAEngine;
+    window.PSA = PSAEngine;
+    window.ProbabilisticSensitivityAnalysis = PSAEngine;
     window.PSAWorkerRunner = PSAWorkerRunner;
     window.DSAEngine = DSAEngine;
     window.EVPICalculator = EVPICalculator;

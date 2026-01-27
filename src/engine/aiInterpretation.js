@@ -557,7 +557,7 @@ class AIInterpretationEngine {
                 { threshold: 25, interpretation: 'negligible' },
                 { threshold: 50, interpretation: 'low' },
                 { threshold: 75, interpretation: 'moderate' },
-                threshold: Infinity, interpretation: 'substantial'
+                { threshold: Infinity, interpretation: 'substantial' }
             ]
         };
     }

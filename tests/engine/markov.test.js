@@ -179,7 +179,8 @@ describe('Markov Engine', () => {
         }
 
         function presentValue(cashflows, rate) {
-            return cashflows.reduce((pv, cf, t) => pv + discount(cf, rate, t), 0);
+            // Assume payments occur at end of period
+            return cashflows.reduce((pv, cf, t) => pv + discount(cf, rate, t + 1), 0);
         }
 
         test('should discount correctly at 3.5%', () => {
@@ -246,6 +247,7 @@ describe('Markov Engine', () => {
         }
 
         function probToRate(prob, time = 1) {
+            if (prob <= 0) return 0;
             return -Math.log(1 - prob) / time;
         }
 
@@ -463,7 +465,7 @@ describe('Statistical Functions', () => {
 
         test('should calculate Q statistic', () => {
             const effects = [0.5, 0.6, 0.4];
-            const variances = [0.01, 0.01, 0.01];
+            const variances = [0.0001, 0.0001, 0.0001];
             const pooled = 0.5;
             const Q = calculateQ(effects, variances, pooled);
             expect(Q).toBeCloseTo(200, 0);

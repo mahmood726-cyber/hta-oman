@@ -471,6 +471,7 @@ class MarkovEngine {
 // Export
 if (typeof window !== 'undefined') {
     window.MarkovEngine = MarkovEngine;
+    window.MarkovModel = MarkovEngine;
 }
 
 if (typeof module !== 'undefined' && module.exports) {

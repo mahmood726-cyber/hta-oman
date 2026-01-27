@@ -20160,6 +20160,52 @@ class MediationAnalysisHTA {
     }
 }
 
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+if (typeof window !== 'undefined') {
+    window.FrontierMeta = {
+        IPDMetaAnalysis,
+        DTAMetaAnalysis,
+        DataFabricationDetection,
+        SurvivalMetaAnalysis,
+        FederatedMetaAnalysis,
+        DistributionalCEA,
+        DigitalHealthFDA,
+        AdvancedSurvivalMethods,
+        BayesianDecisionAnalysis,
+        MachineLearningHTA,
+        AdvancedNMAMethods,
+        MissingDataMethods,
+        DynamicTreatmentRegimes,
+        GeneralizabilityTransportability,
+        AdvancedUncertaintyQuantification,
+        MediationAnalysisHTA
+    };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        IPDMetaAnalysis,
+        DTAMetaAnalysis,
+        DataFabricationDetection,
+        SurvivalMetaAnalysis,
+        FederatedMetaAnalysis,
+        DistributionalCEA,
+        DigitalHealthFDA,
+        AdvancedSurvivalMethods,
+        BayesianDecisionAnalysis,
+        MachineLearningHTA,
+        AdvancedNMAMethods,
+        MissingDataMethods,
+        DynamicTreatmentRegimes,
+        GeneralizabilityTransportability,
+        AdvancedUncertaintyQuantification,
+        MediationAnalysisHTA
+    };
+}
+
 // Export all classes
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {

@@ -1,0 +1,10 @@
+﻿# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+webview2/OmanHTA.WebView2/bin/
+webview2/OmanHTA.WebView2/obj/
+
+# Local caches/logs
+*.log

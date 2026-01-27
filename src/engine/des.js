@@ -1020,5 +1020,7 @@ if (typeof module !== 'undefined' && module.exports) {
 // Browser global
 if (typeof window !== 'undefined') {
     window.DiscreteEventSimulationEngine = DiscreteEventSimulationEngine;
+    window.DES = DiscreteEventSimulationEngine;
+    window.DiscreteEventSimulation = DiscreteEventSimulationEngine;
     window.DESTemplates = DESTemplates;
 }

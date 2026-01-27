@@ -263,6 +263,7 @@ class CopasSelectionModel {
                 effect: unadjustedEffect,
                 se: unadjustedSE
             },
+            adjustedEffect: adjustedEffect,
             adjusted: {
                 effect: adjustedEffect,
                 se: adjustedSE,
@@ -2828,7 +2829,19 @@ class GRADEAssessment {
         // Start with high (RCT) or low (observational)
         let certainty = isRCT ? 4 : 2;  // 4=High, 3=Moderate, 2=Low, 1=Very Low
 
-        const assessment = {
+        const hasDirectDomains = metaAnalysisResults &&
+            metaAnalysisResults.riskOfBias &&
+            metaAnalysisResults.inconsistency &&
+            metaAnalysisResults.indirectness &&
+            metaAnalysisResults.imprecision;
+
+        const assessment = hasDirectDomains ? {
+            riskOfBias: this._normalizeRiskOfBias(metaAnalysisResults.riskOfBias),
+            inconsistency: this._normalizeInconsistency(metaAnalysisResults.inconsistency),
+            indirectness: this._normalizeIndirectness(metaAnalysisResults.indirectness),
+            imprecision: this._normalizeImprecision(metaAnalysisResults.imprecision),
+            publicationBias: this._normalizePublicationBias(metaAnalysisResults.publicationBias)
+        } : {
             riskOfBias: this.assessRiskOfBias(robAssessments),
             inconsistency: this.assessInconsistency(metaAnalysisResults),
             indirectness: this.assessIndirectness(options.indirectness || {}),
@@ -2857,13 +2870,64 @@ class GRADEAssessment {
 
         const certaintyLabels = ['', 'Very Low', 'Low', 'Moderate', 'High'];
 
+        const explanation = this.generateExplanation(assessment, certainty);
+        const summary = `GRADE certainty: ${certaintyLabels[certainty]}. ${explanation.join(' ')}`;
+
         return {
             overallCertainty: certainty,
             certaintyLabel: certaintyLabels[certainty],
+            score: certainty,
+            summary,
             domainAssessments: assessment,
-            explanation: this.generateExplanation(assessment, certainty),
+            explanation,
             recommendation: this.generateRecommendation(certainty, metaAnalysisResults)
         };
+    }
+
+    _normalizeRiskOfBias(rob) {
+        if (!rob) return { concern: 'no information', rating: 'unclear' };
+        if (Array.isArray(rob)) {
+            return this.assessRiskOfBias(rob);
+        }
+        const overall = (rob.overall || rob.rating || '').toLowerCase();
+        if (overall.includes('high')) return { concern: 'very serious', rating: 'high' };
+        if (overall.includes('some')) return { concern: 'serious', rating: 'some concerns' };
+        return { concern: 'none', rating: 'low' };
+    }
+
+    _normalizeInconsistency(inconsistency) {
+        if (!inconsistency) return { concern: 'no information', rating: 'unclear' };
+        const I2 = inconsistency.i2 ?? inconsistency.I2 ?? 0;
+        const pQ = inconsistency.pValue ?? inconsistency.pValueQ ?? 1;
+        return this.assessInconsistency({ heterogeneity: { I2, pValueQ: pQ } });
+    }
+
+    _normalizeIndirectness(indirectness) {
+        if (!indirectness) return { concern: 'no information', factors: [] };
+        if (indirectness.rating) {
+            const rating = indirectness.rating.toLowerCase();
+            if (rating.includes('serious')) return { concern: 'serious', factors: [] };
+            if (rating.includes('very')) return { concern: 'very serious', factors: [] };
+            return { concern: 'none', factors: [] };
+        }
+        return this.assessIndirectness(indirectness);
+    }
+
+    _normalizeImprecision(imprecision) {
+        if (!imprecision) return { concern: 'no information' };
+        const ciWidth = imprecision.ciWidth ?? imprecision.width;
+        const threshold = imprecision.threshold ?? imprecision.mid;
+        if (ciWidth !== undefined && threshold !== undefined) {
+            return ciWidth > threshold ? { concern: 'serious', wide: true } : { concern: 'none', wide: false };
+        }
+        return { concern: 'unclear' };
+    }
+
+    _normalizePublicationBias(pubBias) {
+        if (!pubBias) return { concern: 'not assessed' };
+        if (pubBias.detected === true) return { concern: 'serious' };
+        if (pubBias.detected === false) return { concern: 'none' };
+        return { concern: 'not assessed' };
     }
 
     assessRiskOfBias(robAssessments) {
@@ -3167,6 +3231,18 @@ if (typeof window !== 'undefined') {
     window.MixtureCureModel = MixtureCureModel;
     window.GRADEAssessment = GRADEAssessment;
     window.ValidationReport = ValidationReport;
+    window.AdvancedEnhancements = {
+        HKSJAdjustment,
+        CopasSelectionModel,
+        ProfileLikelihoodCI,
+        RoystonParmarSurvival,
+        MCMCDiagnostics,
+        MultivariateMetaAnalysis,
+        NetworkMetaRegression,
+        MixtureCureModel,
+        GRADEAssessment,
+        ValidationReport
+    };
 }
 
 if (typeof module !== 'undefined' && module.exports) {

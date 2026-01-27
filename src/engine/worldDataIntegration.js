@@ -238,8 +238,8 @@ class WorldDataIntegration {
     /**
      * Load dataset by name from catalog
      */
-    async loadDataset(source, package, datasetName) {
-        const cacheKey = `${source}.${package}.${datasetName}`;
+    async loadDataset(source, packageName, datasetName) {
+        const cacheKey = `${source}.${packageName}.${datasetName}`;
 
         // Check cache
         if (this.options.cacheResults && this.cache.has(cacheKey)) {
@@ -254,16 +254,16 @@ class WorldDataIntegration {
 
             switch (source) {
                 case 'cran':
-                    data = await this.loadCRANDataset(package, datasetName);
+                    data = await this.loadCRANDataset(packageName, datasetName);
                     break;
                 case 'zenodo':
                     data = await this.loadZenodoDataset(datasetName);
                     break;
                 case 'github':
-                    data = await this.loadGitHubDataset(package, datasetName);
+                    data = await this.loadGitHubDataset(packageName, datasetName);
                     break;
                 case 'registry':
-                    data = await this.loadRegistryData(package, datasetName);
+                    data = await this.loadRegistryData(packageName, datasetName);
                     break;
                 default:
                     throw new Error(`Unknown source: ${source}`);
@@ -287,10 +287,10 @@ class WorldDataIntegration {
     /**
      * Load CRAN dataset
      */
-    async loadCRANDataset(package, datasetName) {
-        const packageData = this.datasetCatalog.cran[package];
+    async loadCRANDataset(packageName, datasetName) {
+        const packageData = this.datasetCatalog.cran[packageName];
         if (!packageData) {
-            throw new Error(`Package not found: ${package}`);
+            throw new Error(`Package not found: ${packageName}`);
         }
 
         const dataset = packageData.find(d => d.name === datasetName);
@@ -314,7 +314,7 @@ class WorldDataIntegration {
         return {
             metadata: {
                 source: 'CRAN',
-                package,
+                package: packageName,
                 name: dataset.name,
                 title: dataset.title,
                 description: dataset.description,

@@ -40,7 +40,9 @@ class MetaAnalysisMethods {
         }
 
         const n = studies.length;
-        if (n === 0) return null;
+        if (n === 0) {
+            throw new Error('studies array is empty');
+        }
 
         // Validate each study
         for (let i = 0; i < n; i++) {
@@ -870,16 +872,15 @@ class MetaAnalysisMethods {
         const maxChange = Math.max(...results.map(r => Math.abs(r.change)));
         const influential = results.filter(r => Math.abs(r.change) > 0.5 * maxChange);
 
-        return {
-            results,
-            fullEffect: fullPooled.random.effect,
-            range: {
-                min: Math.min(...results.map(r => r.effect)),
-                max: Math.max(...results.map(r => r.effect))
-            },
-            influential: influential.map(r => r.studyLabel),
-            isRobust: maxChange < Math.abs(fullPooled.random.effect * 0.2)
+        // Return array for compatibility, with metadata attached
+        results.fullEffect = fullPooled.random.effect;
+        results.range = {
+            min: Math.min(...results.map(r => r.effect)),
+            max: Math.max(...results.map(r => r.effect))
         };
+        results.influential = influential.map(r => r.studyLabel);
+        results.isRobust = maxChange < Math.abs(fullPooled.random.effect * 0.2);
+        return results;
     }
 
     /**
@@ -965,6 +966,8 @@ class MetaAnalysisMethods {
 
         return {
             diagnostics,
+            cookD: diagnostics.map(d => d.cooksD),
+            cooksD: diagnostics.map(d => d.cooksD),
             summary: {
                 nOutliers: outliers.length,
                 nInfluential: influential.length,
@@ -985,6 +988,19 @@ class MetaAnalysisMethods {
      * @param {string} sortBy - 'year', 'precision', or 'effect'
      * @returns {Object} Cumulative results showing effect evolution
      */
+    cumulativeMA(studies, sortBy = 'year') {
+        const output = this.cumulativeMetaAnalysis(studies, sortBy);
+        if (output && Array.isArray(output.results)) {
+            const results = output.results;
+            results.sortedBy = output.sortedBy;
+            results.isStable = output.isStable;
+            results.finalEffect = output.finalEffect;
+            results.rangeOfEffects = output.rangeOfEffects;
+            return results;
+        }
+        return output;
+    }
+
     cumulativeMetaAnalysis(studies, sortBy = 'year') {
         const n = studies.length;
         if (n < 2) return { error: 'Need at least 2 studies' };
@@ -1521,6 +1537,7 @@ class MetaAnalysisMethods {
 // Export
 if (typeof window !== 'undefined') {
     window.MetaAnalysisMethods = MetaAnalysisMethods;
+    window.MetaAnalysis = MetaAnalysisMethods;
 }
 
 if (typeof module !== 'undefined' && module.exports) {

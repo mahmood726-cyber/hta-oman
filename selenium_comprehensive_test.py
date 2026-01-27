@@ -285,9 +285,13 @@ def run_tests():
             ];
             return ma.leaveOneOut(studies);
         ''')
-        if result and 'results' in result:
+        if isinstance(result, list):
             test_result("Leave-one-out analysis", True,
-                f"n_results={len(result['results'])}, robust={result['isRobust']}")
+                f"n_results={len(result)}, robust=n/a")
+            passed += 1
+        elif result and 'results' in result:
+            test_result("Leave-one-out analysis", True,
+                f"n_results={len(result['results'])}, robust={result.get('isRobust')}")
             passed += 1
         else:
             test_result("Leave-one-out analysis", False, str(result))

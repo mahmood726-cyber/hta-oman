@@ -1326,6 +1326,7 @@ if (typeof module !== 'undefined' && module.exports) {
 // Browser global
 if (typeof window !== 'undefined') {
     window.SurvivalAnalysisEngine = SurvivalAnalysisEngine;
+    window.SurvivalAnalysis = SurvivalAnalysisEngine;
     window.SurvivalDistributions = {
         Exponential: ExponentialDistribution,
         Weibull: WeibullDistribution,
