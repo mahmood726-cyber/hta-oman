@@ -505,7 +505,7 @@ class EVPPICalculator {
     /**
      * Calculate population EVPPI
      */
-    calculatePopulationEVPPI(evppiPerPatient, population, years, discountRate = 0.035) {
+    calculatePopulationEVPPI(evppiPerPatient, population, years, discountRate = 0.03) {
         // Discount factor for population
         let totalDiscountedPop = 0;
         for (let t = 0; t < years; t++) {

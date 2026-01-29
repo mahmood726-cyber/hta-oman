@@ -1,9 +1,9 @@
 /**
- * AI-Powered Interpretation Engine for HTA
- * World's most intelligent HTA result interpretation system
+ * Rule-based Interpretation Engine for HTA
+ * Deterministic narrative generation (no LLMs)
  *
  * Features:
- * - Natural language result interpretation
+ * - Natural language result interpretation (rule-based templates)
  * - Context-aware statistical explanations
  * - Clinical significance assessment
  * - Publication-quality narrative generation
@@ -16,6 +16,20 @@
  * - NICE Decision Support Unit guides
  * - ISPOR Task Force reports
  */
+
+var OmanGuidanceRef = (function resolveOmanGuidance() {
+    if (typeof globalThis !== 'undefined' && globalThis.OmanHTAGuidance) {
+        return globalThis.OmanHTAGuidance;
+    }
+    if (typeof require === 'function') {
+        try {
+            return require('../utils/omanGuidance');
+        } catch (err) {
+            return null;
+        }
+    }
+    return null;
+})();
 
 class AIInterpretationEngine {
     constructor(options = {}) {
@@ -38,6 +52,10 @@ class AIInterpretationEngine {
         };
 
         // Clinical significance thresholds
+        const defaultWtp = OmanGuidanceRef?.resolvePrimaryWtp
+            ? OmanGuidanceRef.resolvePrimaryWtp({})
+            : 10000;
+
         this.thresholds = {
             minimalImportantDifference: {
                 SMD: 0.2,
@@ -47,10 +65,7 @@ class AIInterpretationEngine {
                 HR: 1.15
             },
            _willingness_to_pay: {
-                uk: 30000, // £/QALY
-                us: 50000, // $/QALY
-                canada: 50000, // CAD/QALY
-                australia: 50000, // AUD/QALY
+                oman: defaultWtp, // OMR/QALY
                 custom: null
             }
         };

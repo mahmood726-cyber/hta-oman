@@ -173,17 +173,22 @@ class NetworkMetaAnalysis {
 
             // Calculate baseline variance for multi-arm correlation
             let baselineVariance = 0;
+            let baselineMeanVariance = 0;
             if (outcomeType === 'binary') {
                 const a = baseline.events, b = baseline.n - baseline.events;
                 const adj = (a === 0 || b === 0) ? 0.5 : 0;
                 baselineVariance = 1/(a + adj) + 1/(b + adj);
             } else if (outcomeType === 'continuous') {
-                baselineVariance = 1 / baseline.n;
+                // Variance of baseline mean
+                baselineMeanVariance = (baseline.sd && baseline.n) ? (baseline.sd ** 2) / baseline.n : 0;
             }
 
             for (let i = 1; i < studyArms.length; i++) {
                 const arm = studyArms[i];
                 let effect, variance;
+
+                let pooledSD = null;
+                let hedgesJ = null;
 
                 if (outcomeType === 'binary') {
                     // Log odds ratio
@@ -201,6 +206,8 @@ class NetworkMetaAnalysis {
                     );
                     effect = smd.d;
                     variance = smd.variance;
+                    pooledSD = smd.pooledSD;
+                    hedgesJ = smd.hedgesJ;
                 } else if (outcomeType === 'hr') {
                     // Hazard ratio (log scale)
                     effect = Math.log(arm.hr);
@@ -218,7 +225,11 @@ class NetworkMetaAnalysis {
                     n2: arm.n,
                     multiArm: isMultiArm,
                     armIndex: i,
-                    baselineVariance: baselineVariance // For covariance calculation
+                    baselineVariance: baselineVariance,
+                    baselineMeanVariance: baselineMeanVariance,
+                    pooledSD: pooledSD,
+                    hedgesJ: hedgesJ,
+                    outcomeType: outcomeType
                 };
 
                 contrasts.push(contrast);
@@ -243,8 +254,15 @@ class NetworkMetaAnalysis {
                         if (i === j) {
                             row.push(contrastList[i].variance);
                         } else {
-                            // Covariance = baseline variance (shared baseline arm)
-                            row.push(contrastList[i].baselineVariance);
+                            // Covariance = shared baseline component
+                            let cov = contrastList[i].baselineVariance || 0;
+                            if (contrastList[i].outcomeType === 'continuous') {
+                                const baseVar = contrastList[i].baselineMeanVariance || 0;
+                                const denom = (contrastList[i].pooledSD || 1) * (contrastList[j].pooledSD || 1);
+                                const scale = (contrastList[i].hedgesJ || 1) * (contrastList[j].hedgesJ || 1);
+                                cov = denom > 0 ? (baseVar * scale) / denom : 0;
+                            }
+                            row.push(cov);
                         }
                     }
                     covMatrix.push(row);
@@ -325,7 +343,7 @@ class NetworkMetaAnalysis {
         // Variance
         const variance = (n1 + n2) / (n1 * n2) + (g ** 2) / (2 * (n1 + n2));
 
-        return { d: g, variance, se: Math.sqrt(variance) };
+        return { d: g, variance, se: Math.sqrt(variance), pooledSD: sp, hedgesJ: J };
     }
 
     /**

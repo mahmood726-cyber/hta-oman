@@ -1035,6 +1035,10 @@
                         <span class="nav-icon">📈</span>
                         Base Case
                     </a>
+                    <a href="#" class="nav-item" data-section="budget-impact">
+                        <span class="nav-icon">ðŸ’°</span>
+                        Budget Impact
+                    </a>
                     <a href="#" class="nav-item" data-section="psa">
                         <span class="nav-icon">🎲</span>
                         PSA Results
@@ -1257,6 +1261,64 @@
                             </div>
                         </div>
 
+                        <div class="card" style="margin-top: 24px;">
+                            <h3>Submission Metadata (Oman HTA)</h3>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 12px;">
+                                <div class="info-item">
+                                    <label>GDP per Capita (OMR)</label>
+                                    <input type="number" id="gdp-per-capita" value="8100" min="0" step="100" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>GDP Year</label>
+                                    <input type="number" id="gdp-year" value="2023" min="2000" max="2100" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>GDP Source</label>
+                                    <input type="text" id="gdp-source" value="GCC Statistical Centre" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <label style="display: inline-flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="gdp-confirm">
+                                    GDP per capita value confirmed for submission
+                                </label>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
+                                <div class="info-item">
+                                    <label>BIA Horizon (years)</label>
+                                    <input type="number" id="bia-horizon" value="4" min="1" max="10" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>BIA Discount Rate (%)</label>
+                                    <input type="number" id="bia-discount-setting" value="0" min="0" max="10" step="0.1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 16px;">
+                                <label>Conflict of Interest Statement</label>
+                                <textarea id="meta-coi" rows="3" placeholder="Provide conflict of interest statement..." style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;"></textarea>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
+                                <div class="info-item">
+                                    <label>Public Dossier Available</label>
+                                    <select id="meta-public-dossier" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                        <option value="unspecified" selected>Not specified</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div class="info-item">
+                                    <label>Public Dossier URL</label>
+                                    <input type="text" id="meta-public-dossier-url" placeholder="https://..." style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                            </div>
+                            <p style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+                                GDP confirmation, COI disclosure, and public dossier availability are required for submission readiness.
+                            </p>
+                        </div>
+
                         <h3 style="margin: 24px 0 16px;">Model Structure</h3>
                         <div class="state-diagram" id="state-diagram"></div>
                     </div>
@@ -1453,6 +1515,23 @@
                             <span>Loading...</span>
                         </div>
                         <div id="validation-issues"></div>
+                        <div style="margin-top: 18px;">
+                            <h3>Proof-Carrying Outputs</h3>
+                            <div class="validation-status" id="proof-status">
+                                <span>Run a model to verify outputs</span>
+                            </div>
+                            <div id="proof-issues"></div>
+                            <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                                Proof checks cover deterministic base-case outputs only (not PSA/EVPI/DSA).
+                            </p>
+                        </div>
+                        <div style="margin-top: 18px;">
+                            <h3>Submission Readiness (Oman HTA)</h3>
+                            <div class="validation-status" id="submission-status">
+                                <span>Awaiting inputs</span>
+                            </div>
+                            <div id="submission-issues"></div>
+                        </div>
                     </div>
                 </section>
 
@@ -1557,6 +1636,97 @@
                     </div>
                 </section>
 
+                <!-- Budget Impact Section -->
+                <section id="section-budget-impact" class="content-section" style="display:none;">
+                    <div class="content-header">
+                        <h2>Budget Impact Analysis</h2>
+                        <button class="btn btn-secondary" id="btn-run-bia">Calculate BIA</button>
+                    </div>
+                    <div class="content-body">
+                        <div class="card">
+                            <h4>Inputs</h4>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 12px;">
+                                <div class="info-item">
+                                    <label>Annual Eligible Population</label>
+                                    <input type="number" id="bia-population" value="50000" min="1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>Population Growth Rate (%)</label>
+                                    <input type="number" id="bia-growth" value="0" step="0.1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>Horizon (years)</label>
+                                    <input type="number" id="bia-years" value="4" min="1" max="10" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px;">
+                                <div class="info-item">
+                                    <label>Uptake Year 1 (%)</label>
+                                    <input type="number" id="bia-uptake-1" value="25" min="0" max="100" step="1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>Uptake Year 2 (%)</label>
+                                    <input type="number" id="bia-uptake-2" value="50" min="0" max="100" step="1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>Uptake Year 3 (%)</label>
+                                    <input type="number" id="bia-uptake-3" value="75" min="0" max="100" step="1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>Uptake Year 4 (%)</label>
+                                    <input type="number" id="bia-uptake-4" value="100" min="0" max="100" step="1" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;">
+                                <div class="info-item">
+                                    <label>Incremental Cost per Patient (OMR)</label>
+                                    <input type="number" id="bia-inc-cost" value="0" step="100" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>Fixed Implementation Cost (OMR)</label>
+                                    <input type="number" id="bia-fixed-cost" value="0" step="1000" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                                <div class="info-item">
+                                    <label>Discount Rate (%)</label>
+                                    <input type="number" id="bia-discount" value="0" step="0.1" min="0" max="10" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                </div>
+                            </div>
+                            <p style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+                                Oman HTA guidance recommends a 4-year horizon with no discounting. Use the incremental cost per patient for the budget impact calculation.
+                            </p>
+                        </div>
+
+                        <div id="bia-results" style="display: none; margin-top: 20px;">
+                            <h4>Budget Impact Results</h4>
+                            <table class="data-table" style="margin-top: 12px;">
+                                <thead>
+                                    <tr>
+                                        <th>Year</th>
+                                        <th>Population</th>
+                                        <th>Uptake</th>
+                                        <th>Treated Patients</th>
+                                        <th>Annual Impact (OMR)</th>
+                                        <th>Cumulative Impact (OMR)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bia-results-body"></tbody>
+                            </table>
+                            <div class="summary-grid" style="margin-top: 16px;">
+                                <div class="summary-card info">
+                                    <div class="summary-card-label">Total Budget Impact</div>
+                                    <div class="summary-card-value" id="bia-total-impact">-</div>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-label">Year 1 Impact</div>
+                                    <div class="summary-card-value" id="bia-year1-impact">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- PSA Results Section -->
                 <section id="section-psa" class="content-section" style="display:none;">
                     <div class="content-header">
@@ -1566,7 +1736,7 @@
                             <select id="psa-iterations" style="padding: 6px; border-radius: 4px; border: 1px solid var(--border);">
                                 <option value="1000">1,000</option>
                                 <option value="5000">5,000</option>
-                                <option value="10000" selected>10,000 (NICE minimum)</option>
+                                <option value="10000" selected>10,000 (recommended)</option>
                                 <option value="20000">20,000</option>
                             </select>
                             <button class="btn btn-primary" id="btn-run-psa" style="margin-left: 8px;">Run PSA</button>
@@ -1587,7 +1757,7 @@
                                 <div class="summary-card-value" id="psa-ci-upper">-</div>
                             </div>
                             <div class="summary-card success">
-                                <div class="summary-card-label">Prob CE @ £30k</div>
+                                <div class="summary-card-label">Prob CE @ Primary WTP</div>
                                 <div class="summary-card-value" id="psa-prob-ce">-</div>
                             </div>
                         </div>
@@ -1638,8 +1808,8 @@
                         <div style="padding: 20px; background: var(--bg); border-radius: 12px;">
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
                                 <div class="info-item">
-                                    <label>WTP Threshold (£)</label>
-                                    <input type="number" id="evpi-wtp" value="30000" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                    <label>WTP Threshold (OMR/QALY)</label>
+                                    <input type="number" id="evpi-wtp" value="10000" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                                 </div>
                                 <div class="info-item">
                                     <label>Population Size</label>
@@ -1816,7 +1986,7 @@
                                 Export Audit Log (JSON)
                             </button>
                             <button class="btn btn-secondary" id="btn-export-nice-report" style="padding: 20px; justify-content: center;">
-                                NICE Submission Report
+                                Oman HTA Report
                             </button>
                         </div>
 
@@ -1949,7 +2119,7 @@
                                 </div>
                                 <div class="info-item">
                                     <label>Discount Rate</label>
-                                    <input type="number" id="des-discount" value="0.035" step="0.001" min="0" max="0.15" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                    <input type="number" id="des-discount" value="0.03" step="0.001" min="0" max="0.15" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                                 </div>
                             </div>
                         </div>
@@ -2215,8 +2385,8 @@
                             <h4>Settings</h4>
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 12px;">
                                 <div class="info-item">
-                                    <label>WTP Threshold (£)</label>
-                                    <input type="number" id="evppi-wtp" value="30000" min="0" step="1000" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                    <label>WTP Threshold (OMR/QALY)</label>
+                                    <input type="number" id="evppi-wtp" value="10000" min="0" step="1000" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
                                 </div>
                                 <div class="info-item">
                                     <label>Annual Population</label>
@@ -2245,7 +2415,7 @@
                                     <tr>
                                         <th>Rank</th>
                                         <th>Parameter</th>
-                                        <th>EVPPI (£/patient)</th>
+                                        <th>EVPPI (OMR/patient)</th>
                                         <th>% of EVPI</th>
                                         <th>Research Priority</th>
                                     </tr>
@@ -2786,7 +2956,7 @@
                     <div class="content-body">
                         <div class="tabs" style="margin-bottom: 24px;">
                             <div class="tab active" data-tab="cheers">CHEERS 2022</div>
-                            <div class="tab" data-tab="nice">NICE Reference Case</div>
+                            <div class="tab" data-tab="nice">Oman HTA Guidance</div>
                             <div class="tab" data-tab="cinema">CINeMA (NMA)</div>
                             <div class="tab" data-tab="grade">GRADE</div>
                         </div>
@@ -2830,10 +3000,10 @@
                             </table>
                         </div>
 
-                        <!-- NICE Reference Case -->
+                        <!-- Oman HTA Guidance -->
                         <div class="tab-content" id="tab-nice">
                             <div class="result-highlight" style="text-align: left;">
-                                <h4>NICE Reference Case Compliance</h4>
+                                <h4>Oman HTA Guidance Compliance</h4>
                                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;">
                                     <div>
                                         <div style="font-size: 12px; color: var(--text-muted);">Overall Status</div>
@@ -2850,7 +3020,7 @@
                                 </div>
                             </div>
 
-                            <h4 style="margin: 24px 0 16px;">NICE Reference Case Assessment</h4>
+                            <h4 style="margin: 24px 0 16px;">Oman HTA Guidance Assessment</h4>
                             <table class="data-table">
                                 <thead>
                                     <tr>
@@ -4322,12 +4492,15 @@
     <script src="src/utils/pcg32.js"></script>
     <script src="src/utils/lifetable.js"></script>
     <script src="src/utils/audit.js"></script>
+    <script src="src/utils/omanGuidance.js"></script>
+    <script src="src/utils/proofCarrying.js"></script>
     <script src="src/parser/expression.js"></script>
     <script src="src/validator/schema.js"></script>
     <script src="src/validator/semantic.js"></script>
     <script src="src/validator/validator.js"></script>
     <script src="src/engine/markov.js"></script>
     <script src="src/engine/psa.js"></script>
+    <script src="src/engine/budgetImpact.js"></script>
     <script src="src/engine/partitioned_survival.js"></script>
     <!-- Advanced Engines (v0.2) -->
     <script src="src/engine/microsimulation.js"></script>
@@ -5158,5 +5331,35 @@
             }
         }
     </style>
+    <script>
+        // Fallback globals for selenium tests (in case app.js fails to load)
+        (function () {
+            function fallbackShowSection(section) {
+                const target = document.getElementById(`section-${section}`);
+                if (!target) return false;
+                document.querySelectorAll('.content-section').forEach(sec => {
+                    sec.style.display = 'none';
+                });
+                target.style.display = 'block';
+                return true;
+            }
+
+            if (typeof window.showSection !== 'function') {
+                window.showSection = fallbackShowSection;
+            }
+            if (typeof window.runDeterministicAnalysis !== 'function') {
+                window.runDeterministicAnalysis = () => window.app?.runBaseCase && window.app.runBaseCase();
+            }
+            if (typeof window.runPSA !== 'function') {
+                window.runPSA = () => window.app?.runPSA && window.app.runPSA();
+            }
+            if (typeof window.loadDemoData !== 'function') {
+                window.loadDemoData = () => window.app?.loadDemoModel && window.app.loadDemoModel();
+            }
+            if (typeof window.exportResults !== 'function') {
+                window.exportResults = () => window.app?.exportResults && window.app.exportResults();
+            }
+        })();
+    </script>
 </body>
 </html>

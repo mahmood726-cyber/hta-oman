@@ -153,14 +153,16 @@ class AdvancedFeaturesUI {
         container.style.display = 'block';
 
         // Summary statistics
-        const s = results.summary;
-        document.getElementById('microsim-mean-cost').textContent = `£${s.meanCost.toFixed(2)}`;
-        document.getElementById('microsim-mean-qaly').textContent = s.meanQALY.toFixed(4);
-        document.getElementById('microsim-mean-ly').textContent = s.meanLY.toFixed(2);
+        const s = results.summary || {};
+        const meanCost = s.meanCost ?? s.mean_costs;
+        document.getElementById('microsim-mean-cost').textContent =
+            Number.isFinite(meanCost) ? this.app.formatCurrency(meanCost, 2) : '-';
+        document.getElementById('microsim-mean-qaly').textContent = Number.isFinite(s.meanQALY) ? s.meanQALY.toFixed(4) : '-';
+        document.getElementById('microsim-mean-ly').textContent = Number.isFinite(s.meanLY) ? s.meanLY.toFixed(2) : '-';
 
         if (s.costCI) {
             document.getElementById('microsim-cost-ci').textContent =
-                `[£${s.costCI[0].toFixed(0)} - £${s.costCI[1].toFixed(0)}]`;
+                `[${this.app.formatCurrency(s.costCI[0], 0)} - ${this.app.formatCurrency(s.costCI[1], 0)}]`;
         }
         if (s.qalyCI) {
             document.getElementById('microsim-qaly-ci').textContent =
@@ -520,9 +522,11 @@ class AdvancedFeaturesUI {
 
             // Convert Markov model to DES model
             const desModel = this.convertToDesModel(this.app.project);
+            const guidanceSettings = this.app.getGuidanceSettings();
 
             const results = await this.desEngine.run(desModel, null, {
-                discountRate: this.app.project.settings?.discount_rate_costs || 0.035,
+                discountRate: guidanceSettings.discount_rate_costs,
+                settings: guidanceSettings,
                 onProgress: (progress) => {
                     const pct = Math.round(progress.percent);
                     if (progressBar) progressBar.style.width = `${pct}%`;
@@ -657,7 +661,9 @@ class AdvancedFeaturesUI {
         container.style.display = 'block';
 
         const s = results.summary;
-        document.getElementById('des-mean-cost').textContent = `£${s.meanDiscountedCost?.toFixed(2) || s.meanCost?.toFixed(2)}`;
+        const meanCost = s.meanDiscountedCost ?? s.meanCost;
+        document.getElementById('des-mean-cost').textContent =
+            Number.isFinite(meanCost) ? this.app.formatCurrency(meanCost, 2) : '-';
         document.getElementById('des-mean-qaly').textContent = (s.meanDiscountedQALY || s.meanQALY)?.toFixed(4);
         document.getElementById('des-mean-ly').textContent = s.meanLY?.toFixed(2);
 
@@ -853,11 +859,17 @@ class AdvancedFeaturesUI {
             return;
         }
 
-        const wtp = parseFloat(document.getElementById('evppi-wtp')?.value || '30000');
+        const primaryWtp = this.app.psaResults?.primary_wtp || this.app.getPrimaryWtp();
+        const wtpInput = document.getElementById('evppi-wtp');
+        const parsedWtp = wtpInput ? parseFloat(wtpInput.value) : NaN;
+        const wtp = Number.isFinite(parsedWtp) ? parsedWtp : primaryWtp;
 
         this.app.showLoading('Calculating EVPPI...');
 
         try {
+            if (wtpInput && !Number.isFinite(parsedWtp)) {
+                wtpInput.value = String(Math.round(wtp));
+            }
             // Get parameter samples from PSA
             const parameterSamples = this.app.psaResults.parameterSamples || {};
 
@@ -886,7 +898,7 @@ class AdvancedFeaturesUI {
 
         // Total EVPI
         document.getElementById('evppi-total-evpi').textContent =
-            `£${results.evpi?.toFixed(2) || '-'}`;
+            Number.isFinite(results.evpi) ? this.app.formatCurrency(results.evpi, 2) : '-';
 
         // EVPPI table
         const tbody = document.getElementById('evppi-results-body');
@@ -898,7 +910,7 @@ class AdvancedFeaturesUI {
                 <tr>
                     <td>${param.rank}</td>
                     <td>${param.parameter}</td>
-                    <td>£${param.evppi.toFixed(2)}</td>
+                    <td>${this.app.formatCurrency(param.evppi, 2)}</td>
                     <td>${pctOfEvpi}%</td>
                     <td>${this.getResearchPriority(pctOfEvpi)}</td>
                 </tr>
@@ -920,6 +932,8 @@ class AdvancedFeaturesUI {
     renderEVPPIChart(results) {
         const ctx = document.getElementById('evppi-chart');
         if (!ctx) return;
+        const settings = this.app.getGuidanceSettings();
+        const currency = settings.currency;
 
         if (this.app.charts.evppi) {
             this.app.charts.evppi.destroy();
@@ -934,7 +948,7 @@ class AdvancedFeaturesUI {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'EVPPI (£)',
+                    label: `EVPPI (${currency})`,
                     data: data,
                     backgroundColor: '#2563eb'
                 }]
@@ -944,7 +958,7 @@ class AdvancedFeaturesUI {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { title: { display: true, text: 'EVPPI (£ per patient)' } }
+                    x: { title: { display: true, text: `EVPPI (${currency} per patient)` } }
                 },
                 plugins: {
                     legend: { display: false },

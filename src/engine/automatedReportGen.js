@@ -1,6 +1,6 @@
 /**
  * Automated Report Generation Engine for HTA
- * Publication-ready report generation with AI assistance
+ * Publication-ready report generation with rule-based assistance
  *
  * Features:
  * - Multi-format export (Word, PDF, HTML, Markdown)
@@ -9,7 +9,7 @@
  * - GRADE evidence profile generation
  * - Automated citation formatting
  * - Template-based report structure
- * - AI-assisted narrative generation
+ * - Rule-based narrative generation
  *
  * References:
  * - CHEERS 2022 statement
@@ -810,17 +810,18 @@ class TableGenerators {
     }
 
     ceBaseCase(results) {
+        const currency = results?.currency || results?.settings?.currency || results?.ceResults?.currency || 'OMR';
         return `
             <table>
                 <caption>Base Case Cost-Effectiveness Results</caption>
                 <thead>
                     <tr>
                         <th>Strategy</th>
-                        <th>Costs (£)</th>
+                        <th>Costs (${currency})</th>
                         <th>QALYs</th>
                         <th>Incremental Cost</th>
                         <th>Incremental QALY</th>
-                        <th>ICER (£/QALY)</th>
+                        <th>ICER (${currency}/QALY)</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -42,13 +42,13 @@ def create_driver():
         chrome_options.add_argument(f'--user-data-dir={temp2}')
         return webdriver.Chrome(options=chrome_options)
 
-def test_section(name):
+def section_header(name):
     """Print section header"""
     print(f"\n{'='*60}")
     print(f"  {name}")
     print('='*60)
 
-def test_result(name, passed, details=""):
+def record_result(name, passed, details=""):
     """Print test result"""
     status = "PASS" if passed else "FAIL"
     icon = "[OK]" if passed else "[X]"
@@ -72,17 +72,17 @@ def run_tests():
     # ================================================================
     # SECTION 1: PAGE LOAD AND INITIALIZATION
     # ================================================================
-    test_section("1. PAGE LOAD & INITIALIZATION")
+    section_header("1. PAGE LOAD & INITIALIZATION")
 
     # Check page title
     try:
         title = driver.title
-        if test_result("Page loads", bool(title), f"Title: {title[:50]}..."):
+        if record_result("Page loads", bool(title), f"Title: {title[:50]}..."):
             passed += 1
         else:
             failed += 1
     except Exception as e:
-        test_result("Page loads", False, str(e))
+        record_result("Page loads", False, str(e))
         failed += 1
 
     # Check main classes exist
@@ -96,18 +96,18 @@ def run_tests():
     for cls, desc in classes_to_check:
         try:
             exists = driver.execute_script(f'return typeof {cls} !== "undefined"')
-            if test_result(f"{desc} class exists", exists):
+            if record_result(f"{desc} class exists", exists):
                 passed += 1
             else:
                 failed += 1
         except Exception as e:
-            test_result(f"{desc} class exists", False, str(e))
+            record_result(f"{desc} class exists", False, str(e))
             failed += 1
 
     # ================================================================
     # SECTION 2: PAIRWISE META-ANALYSIS
     # ================================================================
-    test_section("2. PAIRWISE META-ANALYSIS")
+    section_header("2. PAIRWISE META-ANALYSIS")
 
     # Test pooled effect calculation
     try:
@@ -124,24 +124,24 @@ def run_tests():
         ''')
 
         if result and 'fixed' in result and 'random' in result:
-            test_result("Pooled effect calculation", True,
+            record_result("Pooled effect calculation", True,
                 f"Fixed: {result['fixed']['effect']:.4f}, Random: {result['random']['effect']:.4f}")
             passed += 1
 
             # Check heterogeneity
             if 'heterogeneity' in result:
                 het = result['heterogeneity']
-                test_result("Heterogeneity statistics", True,
+                record_result("Heterogeneity statistics", True,
                     f"Q={het['Q']:.2f}, I2={het['I2']:.1f}%, tau2={het['tauSquared']:.4f}")
                 passed += 1
             else:
-                test_result("Heterogeneity statistics", False)
+                record_result("Heterogeneity statistics", False)
                 failed += 1
         else:
-            test_result("Pooled effect calculation", False)
+            record_result("Pooled effect calculation", False)
             failed += 1
     except Exception as e:
-        test_result("Pooled effect calculation", False, str(e))
+        record_result("Pooled effect calculation", False, str(e))
         failed += 1
 
     # Test different estimators
@@ -157,19 +157,19 @@ def run_tests():
                 const r = ma.calculatePooledEffect(studies);
                 return {{ effect: r.random.effect, tau2: r.heterogeneity.tauSquared }};
             ''')
-            if test_result(f"{method} estimator", result is not None,
+            if record_result(f"{method} estimator", result is not None,
                 f"effect={result['effect']:.4f}, tau2={result['tau2']:.6f}"):
                 passed += 1
             else:
                 failed += 1
         except Exception as e:
-            test_result(f"{method} estimator", False, str(e))
+            record_result(f"{method} estimator", False, str(e))
             failed += 1
 
     # ================================================================
     # SECTION 3: PUBLICATION BIAS TESTS
     # ================================================================
-    test_section("3. PUBLICATION BIAS METHODS")
+    section_header("3. PUBLICATION BIAS METHODS")
 
     # Egger's test
     try:
@@ -185,14 +185,14 @@ def run_tests():
             return ma.eggerTest(studies);
         ''')
         if result and 'intercept' in result:
-            test_result("Egger's test", True,
+            record_result("Egger's test", True,
                 f"intercept={result['intercept']:.3f}, p={result['pValue']:.4f}")
             passed += 1
         else:
-            test_result("Egger's test", False, str(result))
+            record_result("Egger's test", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Egger's test", False, str(e))
+        record_result("Egger's test", False, str(e))
         failed += 1
 
     # Begg's test
@@ -209,14 +209,14 @@ def run_tests():
             return ma.beggTest(studies);
         ''')
         if result and 'tau' in result:
-            test_result("Begg's test", True,
+            record_result("Begg's test", True,
                 f"tau={result['tau']:.3f}, p={result['pValue']:.4f}")
             passed += 1
         else:
-            test_result("Begg's test", False, str(result))
+            record_result("Begg's test", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Begg's test", False, str(e))
+        record_result("Begg's test", False, str(e))
         failed += 1
 
     # Trim and Fill
@@ -233,14 +233,14 @@ def run_tests():
             return ma.trimAndFill(studies);
         ''')
         if result and 'nMissing' in result:
-            test_result("Trim-and-Fill", True,
+            record_result("Trim-and-Fill", True,
                 f"missing={result['nMissing']}, adjusted={result['adjusted']['effect']:.4f}")
             passed += 1
         else:
-            test_result("Trim-and-Fill", False, str(result))
+            record_result("Trim-and-Fill", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Trim-and-Fill", False, str(e))
+        record_result("Trim-and-Fill", False, str(e))
         failed += 1
 
     # Selection model
@@ -258,20 +258,20 @@ def run_tests():
             return ma.selectionModel(studies);
         ''')
         if result and 'adjusted' in result:
-            test_result("Selection model", True,
+            record_result("Selection model", True,
                 f"adjusted={result['adjusted']['effect']:.4f}, weights: sig={result['selectionWeights']['significant']:.2f}")
             passed += 1
         else:
-            test_result("Selection model", False, str(result))
+            record_result("Selection model", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Selection model", False, str(e))
+        record_result("Selection model", False, str(e))
         failed += 1
 
     # ================================================================
     # SECTION 4: SENSITIVITY ANALYSES
     # ================================================================
-    test_section("4. SENSITIVITY ANALYSES")
+    section_header("4. SENSITIVITY ANALYSES")
 
     # Leave-one-out
     try:
@@ -286,18 +286,18 @@ def run_tests():
             return ma.leaveOneOut(studies);
         ''')
         if isinstance(result, list):
-            test_result("Leave-one-out analysis", True,
+            record_result("Leave-one-out analysis", True,
                 f"n_results={len(result)}, robust=n/a")
             passed += 1
         elif result and 'results' in result:
-            test_result("Leave-one-out analysis", True,
+            record_result("Leave-one-out analysis", True,
                 f"n_results={len(result['results'])}, robust={result.get('isRobust')}")
             passed += 1
         else:
-            test_result("Leave-one-out analysis", False, str(result))
+            record_result("Leave-one-out analysis", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Leave-one-out analysis", False, str(e))
+        record_result("Leave-one-out analysis", False, str(e))
         failed += 1
 
     # Influence diagnostics
@@ -314,14 +314,14 @@ def run_tests():
             return ma.influenceDiagnostics(studies);
         ''')
         if result and 'diagnostics' in result:
-            test_result("Influence diagnostics", True,
+            record_result("Influence diagnostics", True,
                 f"outliers={result['summary']['nOutliers']}, influential={result['summary']['nInfluential']}")
             passed += 1
         else:
-            test_result("Influence diagnostics", False, str(result))
+            record_result("Influence diagnostics", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Influence diagnostics", False, str(e))
+        record_result("Influence diagnostics", False, str(e))
         failed += 1
 
     # Cumulative MA
@@ -337,20 +337,20 @@ def run_tests():
             return ma.cumulativeMetaAnalysis(studies, 'year');
         ''')
         if result and 'results' in result:
-            test_result("Cumulative meta-analysis", True,
+            record_result("Cumulative meta-analysis", True,
                 f"n_steps={len(result['results'])}")
             passed += 1
         else:
-            test_result("Cumulative meta-analysis", False, str(result))
+            record_result("Cumulative meta-analysis", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Cumulative meta-analysis", False, str(e))
+        record_result("Cumulative meta-analysis", False, str(e))
         failed += 1
 
     # ================================================================
     # SECTION 5: META-REGRESSION & SUBGROUPS
     # ================================================================
-    test_section("5. META-REGRESSION & SUBGROUPS")
+    section_header("5. META-REGRESSION & SUBGROUPS")
 
     # Meta-regression
     try:
@@ -369,14 +369,14 @@ def run_tests():
             # coefficients is an array: [intercept, moderator, ...]
             intercept = result['coefficients'][0]
             moderator = result['coefficients'][1]
-            test_result("Meta-regression", True,
+            record_result("Meta-regression", True,
                 f"intercept={intercept['estimate']:.4f}, slope={moderator['estimate']:.4f}")
             passed += 1
         else:
-            test_result("Meta-regression", False, str(result))
+            record_result("Meta-regression", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Meta-regression", False, str(e))
+        record_result("Meta-regression", False, str(e))
         failed += 1
 
     # Subgroup analysis
@@ -393,20 +393,20 @@ def run_tests():
         ''')
         if result and 'subgroups' in result and 'betweenGroupHeterogeneity' in result:
             bg = result['betweenGroupHeterogeneity']
-            test_result("Subgroup analysis", True,
+            record_result("Subgroup analysis", True,
                 f"Q_between={bg['Q']:.4f}, p={bg['pValue']:.4f}")
             passed += 1
         else:
-            test_result("Subgroup analysis", False, str(result))
+            record_result("Subgroup analysis", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Subgroup analysis", False, str(e))
+        record_result("Subgroup analysis", False, str(e))
         failed += 1
 
     # ================================================================
     # SECTION 6: HKSJ ADJUSTMENT
     # ================================================================
-    test_section("6. HKSJ ADJUSTMENT")
+    section_header("6. HKSJ ADJUSTMENT")
 
     try:
         result = driver.execute_script('''
@@ -422,20 +422,20 @@ def run_tests():
             return hksj.adjust(studies, tauSq, pooled);
         ''')
         if result and 'ci_lower' in result:
-            test_result("HKSJ adjustment", True,
+            record_result("HKSJ adjustment", True,
                 f"CI=[{result['ci_lower']:.4f}, {result['ci_upper']:.4f}], df={result['df']}")
             passed += 1
         else:
-            test_result("HKSJ adjustment", False, str(result))
+            record_result("HKSJ adjustment", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("HKSJ adjustment", False, str(e))
+        record_result("HKSJ adjustment", False, str(e))
         failed += 1
 
     # ================================================================
     # SECTION 7: COPAS SELECTION MODEL
     # ================================================================
-    test_section("7. COPAS SELECTION MODEL")
+    section_header("7. COPAS SELECTION MODEL")
 
     try:
         result = driver.execute_script('''
@@ -451,29 +451,29 @@ def run_tests():
             return copas.fit(studies, { gridPoints: 10 });
         ''')
         if result and 'adjusted' in result:
-            test_result("Copas model fit", True,
+            record_result("Copas model fit", True,
                 f"adjusted={result['adjusted']['effect']:.4f}, missing~{result['missingStudies']['estimated']}")
 
             # Check t-distribution CI
             if 'df' in result['adjusted']:
-                test_result("Copas uses t-distribution", True,
+                record_result("Copas uses t-distribution", True,
                     f"df={result['adjusted']['df']}")
                 passed += 1
             else:
-                test_result("Copas uses t-distribution", False)
+                record_result("Copas uses t-distribution", False)
                 failed += 1
             passed += 1
         else:
-            test_result("Copas model fit", False, str(result))
+            record_result("Copas model fit", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Copas model fit", False, str(e))
+        record_result("Copas model fit", False, str(e))
         failed += 1
 
     # ================================================================
     # SECTION 8: NETWORK META-ANALYSIS
     # ================================================================
-    test_section("8. NETWORK META-ANALYSIS")
+    section_header("8. NETWORK META-ANALYSIS")
 
     # NMA setup
     try:
@@ -495,14 +495,14 @@ def run_tests():
             };
         ''')
         if result and len(result['treatments']) == 3:
-            test_result("NMA data setup", True,
+            record_result("NMA data setup", True,
                 f"treatments={result['treatments']}, studies={len(result['studies'])}")
             passed += 1
         else:
-            test_result("NMA data setup", False, str(result))
+            record_result("NMA data setup", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("NMA data setup", False, str(e))
+        record_result("NMA data setup", False, str(e))
         failed += 1
 
     # NMA run (async)
@@ -528,14 +528,14 @@ def run_tests():
             }).catch(e => callback({ error: e.message }));
         ''')
         if result and result['hasResults']:
-            test_result("NMA run (frequentist)", True,
+            record_result("NMA run (frequentist)", True,
                 f"effects={result['nEffects']}, tau={result['tau']:.4f}" if result['tau'] else f"effects={result['nEffects']}")
             passed += 1
         else:
-            test_result("NMA run (frequentist)", False, str(result))
+            record_result("NMA run (frequentist)", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("NMA run (frequentist)", False, str(e))
+        record_result("NMA run (frequentist)", False, str(e))
         failed += 1
 
     # League table (async)
@@ -561,13 +561,13 @@ def run_tests():
             }).catch(e => callback({ error: e.message }));
         ''')
         if result and result['hasTable']:
-            test_result("NMA league table", True, f"size={result['size']}x{result['size']}")
+            record_result("NMA league table", True, f"size={result['size']}x{result['size']}")
             passed += 1
         else:
-            test_result("NMA league table", False, str(result))
+            record_result("NMA league table", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("NMA league table", False, str(e))
+        record_result("NMA league table", False, str(e))
         failed += 1
 
     # SUCRA/P-scores (async)
@@ -593,20 +593,20 @@ def run_tests():
         ''')
         if result and len(result) > 0:
             top = result[0]
-            test_result("SUCRA/P-scores", True,
+            record_result("SUCRA/P-scores", True,
                 f"Best: {top['treatment']} (SUCRA={top.get('sucra', top.get('pScore', 'N/A'))})")
             passed += 1
         else:
-            test_result("SUCRA/P-scores", False, str(result))
+            record_result("SUCRA/P-scores", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("SUCRA/P-scores", False, str(e))
+        record_result("SUCRA/P-scores", False, str(e))
         failed += 1
 
     # ================================================================
     # SECTION 9: NMA CONSISTENCY TESTS
     # ================================================================
-    test_section("9. NMA CONSISTENCY TESTS")
+    section_header("9. NMA CONSISTENCY TESTS")
 
     # Node-splitting (checkConsistency is async)
     try:
@@ -630,28 +630,28 @@ def run_tests():
         if result and 'nodeSplitting' in result:
             ns = result['nodeSplitting']
             gt = result['globalTest']
-            test_result("Node-splitting", True,
+            record_result("Node-splitting", True,
                 f"comparisons={len(ns)}, global Q={gt['Q']:.2f}, p={gt['pValue']:.4f}")
             passed += 1
 
             # Check correlation adjustment
             if gt.get('method') == 'correlation-adjusted':
-                test_result("Correlation-adjusted global test", True)
+                record_result("Correlation-adjusted global test", True)
                 passed += 1
             else:
-                test_result("Correlation-adjusted global test", False, gt.get('method'))
+                record_result("Correlation-adjusted global test", False, gt.get('method'))
                 failed += 1
         else:
-            test_result("Node-splitting", False, str(result))
+            record_result("Node-splitting", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Node-splitting", False, str(e))
+        record_result("Node-splitting", False, str(e))
         failed += 1
 
     # ================================================================
     # SECTION 10: INPUT VALIDATION
     # ================================================================
-    test_section("10. INPUT VALIDATION")
+    section_header("10. INPUT VALIDATION")
 
     # Test invalid input handling
     try:
@@ -665,13 +665,13 @@ def run_tests():
             }
         ''')
         if result['caught']:
-            test_result("Rejects non-array input", True, result['message'][:50])
+            record_result("Rejects non-array input", True, result['message'][:50])
             passed += 1
         else:
-            test_result("Rejects non-array input", False)
+            record_result("Rejects non-array input", False)
             failed += 1
     except Exception as e:
-        test_result("Rejects non-array input", False, str(e))
+        record_result("Rejects non-array input", False, str(e))
         failed += 1
 
     # Test invalid SE
@@ -686,13 +686,13 @@ def run_tests():
             }
         ''')
         if result['caught']:
-            test_result("Rejects negative SE", True, result['message'][:50])
+            record_result("Rejects negative SE", True, result['message'][:50])
             passed += 1
         else:
-            test_result("Rejects negative SE", False)
+            record_result("Rejects negative SE", False)
             failed += 1
     except Exception as e:
-        test_result("Rejects negative SE", False, str(e))
+        record_result("Rejects negative SE", False, str(e))
         failed += 1
 
     # Test NMA validation
@@ -707,19 +707,19 @@ def run_tests():
             }
         ''')
         if result['caught']:
-            test_result("NMA validates data format", True, result['message'][:50])
+            record_result("NMA validates data format", True, result['message'][:50])
             passed += 1
         else:
-            test_result("NMA validates data format", False)
+            record_result("NMA validates data format", False)
             failed += 1
     except Exception as e:
-        test_result("NMA validates data format", False, str(e))
+        record_result("NMA validates data format", False, str(e))
         failed += 1
 
     # ================================================================
     # SECTION 11: STATISTICAL FUNCTIONS
     # ================================================================
-    test_section("11. STATISTICAL FUNCTIONS")
+    section_header("11. STATISTICAL FUNCTIONS")
 
     # t-distribution
     try:
@@ -737,15 +737,15 @@ def run_tests():
         z_ok = abs(result['normal_0975'] - 1.96) < 0.01
 
         if t10_ok and t5_ok and z_ok:
-            test_result("t-distribution quantiles", True,
+            record_result("t-distribution quantiles", True,
                 f"t(10)={result['t_0975_10']:.3f}, t(5)={result['t_0975_5']:.3f}, z={result['normal_0975']:.3f}")
             passed += 1
         else:
-            test_result("t-distribution quantiles", False,
+            record_result("t-distribution quantiles", False,
                 f"t(10)={result['t_0975_10']:.3f}, t(5)={result['t_0975_5']:.3f}")
             failed += 1
     except Exception as e:
-        test_result("t-distribution quantiles", False, str(e))
+        record_result("t-distribution quantiles", False, str(e))
         failed += 1
 
     # Chi-squared
@@ -759,14 +759,14 @@ def run_tests():
         ''')
         # chi2(5, df=4) CDF should be ~0.713
         if result['chi2_cdf_5_4'] > 0.7 and result['chi2_cdf_5_4'] < 0.75:
-            test_result("Chi-squared CDF", True,
+            record_result("Chi-squared CDF", True,
                 f"chi2(5,4)={result['chi2_cdf_5_4']:.4f}")
             passed += 1
         else:
-            test_result("Chi-squared CDF", False, str(result))
+            record_result("Chi-squared CDF", False, str(result))
             failed += 1
     except Exception as e:
-        test_result("Chi-squared CDF", False, str(e))
+        record_result("Chi-squared CDF", False, str(e))
         failed += 1
 
     # ================================================================

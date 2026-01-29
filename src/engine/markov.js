@@ -12,6 +12,40 @@
  * - State trace recording
  */
 
+var OmanGuidanceRef = (function resolveOmanGuidance() {
+    if (typeof globalThis !== 'undefined' && globalThis.OmanHTAGuidance) {
+        return globalThis.OmanHTAGuidance;
+    }
+    if (typeof require === 'function') {
+        try {
+            return require('../utils/omanGuidance');
+        } catch (err) {
+            return null;
+        }
+    }
+    return null;
+})();
+
+var guidanceDefaults = OmanGuidanceRef?.defaults || {
+    discount_rate_costs: 0.03,
+    discount_rate_qalys: 0.03,
+    currency: 'OMR'
+};
+
+function resolveWtpThresholds(settings) {
+    if (OmanGuidanceRef?.resolveWtpThresholds) {
+        return OmanGuidanceRef.resolveWtpThresholds(settings).thresholds;
+    }
+    const explicit = Array.isArray(settings?.wtp_thresholds) ? settings.wtp_thresholds : null;
+    if (explicit && explicit.length) return explicit;
+    return [20000, 30000, 50000];
+}
+
+function resolvePrimaryWtp(settings) {
+    const thresholds = resolveWtpThresholds(settings);
+    return thresholds[0];
+}
+
 class MarkovEngine {
     constructor(options = {}) {
         this.options = {
@@ -19,6 +53,7 @@ class MarkovEngine {
             maxCycles: 10000, // Safety limit
             ...options
         };
+        this.warnedParameters = new Set();
     }
 
     /**
@@ -110,13 +145,16 @@ class MarkovEngine {
     getSettings(project) {
         const s = project.settings || {};
         return {
-            time_horizon: s.time_horizon || 40,
-            cycle_length: s.cycle_length || 1,
-            discount_rate_costs: s.discount_rate_costs || 0.035,
-            discount_rate_qalys: s.discount_rate_qalys || 0.035,
+            time_horizon: s.time_horizon ?? 40,
+            cycle_length: s.cycle_length ?? 1,
+            discount_rate_costs: s.discount_rate_costs ?? guidanceDefaults.discount_rate_costs,
+            discount_rate_qalys: s.discount_rate_qalys ?? guidanceDefaults.discount_rate_qalys,
             half_cycle_correction: s.half_cycle_correction || 'trapezoidal',
-            currency: s.currency || 'GBP',
-            starting_age: s.starting_age || 50
+            currency: s.currency || guidanceDefaults.currency,
+            starting_age: s.starting_age ?? 50,
+            gdp_per_capita_omr: s.gdp_per_capita_omr,
+            wtp_thresholds: s.wtp_thresholds,
+            wtp_multipliers: s.wtp_multipliers
         };
     }
 
@@ -191,10 +229,23 @@ class MarkovEngine {
         // Resolve expression parameters
         for (const [id, value] of Object.entries(parameters)) {
             if (typeof value === 'string') {
+                const trimmed = value.trim();
+                const isSimpleIdentifier = /^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed);
+                if (isSimpleIdentifier) {
+                    if (Object.prototype.hasOwnProperty.call(context, trimmed)) {
+                        context[id] = context[trimmed];
+                    } else {
+                        context[id] = 0;
+                    }
+                    continue;
+                }
                 try {
                     context[id] = ExpressionParser.evaluate(value, context);
                 } catch (e) {
-                    console.warn(`Failed to evaluate parameter ${id}: ${e.message}`);
+                    if (!this.warnedParameters.has(id)) {
+                        console.warn(`Failed to evaluate parameter ${id}: ${e.message}`);
+                        this.warnedParameters.add(id);
+                    }
                     context[id] = 0;
                 }
             }
@@ -336,6 +387,7 @@ class MarkovEngine {
      * Run incremental analysis (intervention vs comparator)
      */
     runIncremental(project, interventionOverrides = {}, comparatorOverrides = {}) {
+        const settings = this.getSettings(project);
         // Run intervention
         const intResults = this.run(project, interventionOverrides);
 
@@ -370,7 +422,8 @@ class MarkovEngine {
         }
 
         // Calculate NMB at different WTP thresholds
-        const wtpThresholds = [20000, 30000, 50000];
+        const wtpThresholds = resolveWtpThresholds(settings);
+        const primaryWtp = resolvePrimaryWtp(settings);
         const nmb = {};
         for (const wtp of wtpThresholds) {
             nmb[wtp] = incQalys * wtp - incCosts;
@@ -385,7 +438,10 @@ class MarkovEngine {
                 life_years: intResults.life_years - compResults.life_years,
                 icer: icer,
                 dominance: dominance,
-                nmb: nmb
+                nmb: nmb,
+                wtp_thresholds: wtpThresholds,
+                primary_wtp: primaryWtp,
+                nmb_primary: incQalys * primaryWtp - incCosts
             }
         };
     }
@@ -395,9 +451,14 @@ class MarkovEngine {
      */
     runAllStrategies(project) {
         const strategies = project.strategies || {};
+        const settings = this.getSettings(project);
+        const wtpThresholds = resolveWtpThresholds(settings);
+        const primaryWtp = resolvePrimaryWtp(settings);
         const results = {
             strategies: {},
-            incremental: null
+            incremental: null,
+            wtp_thresholds: wtpThresholds,
+            primary_wtp: primaryWtp
         };
 
         // Find comparator
@@ -454,7 +515,9 @@ class MarkovEngine {
                     incremental_qalys: incQalys,
                     icer: icer,
                     dominance: dominance,
-                    nmb_30k: incQalys * 30000 - incCosts
+                    nmb_30k: incQalys * primaryWtp - incCosts,
+                    nmb_primary: incQalys * primaryWtp - incCosts,
+                    wtp_used: primaryWtp
                 });
             }
 

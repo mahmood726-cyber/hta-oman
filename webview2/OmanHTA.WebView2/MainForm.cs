@@ -80,7 +80,7 @@ public sealed class MainForm : Form
             CoreWebView2HostResourceAccessKind.Allow);
 
         _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
-        _webView.CoreWebView2.Settings.AreDevToolsEnabled = true;
+        _webView.CoreWebView2.Settings.AreDevToolsEnabled = System.Diagnostics.Debugger.IsAttached;
         _webView.Source = new Uri($"https://{hostName}/index.html");
     }
 

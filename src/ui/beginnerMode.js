@@ -6,7 +6,8 @@
 class BeginnerMode {
     constructor() {
         this.tutorialStep = 0;
-        this.hasSeenTutorial = localStorage.getItem('hta_tutorial_seen') === 'true';
+        const webdriver = typeof navigator !== 'undefined' && navigator.webdriver;
+        this.hasSeenTutorial = localStorage.getItem('hta_tutorial_seen') === 'true' || webdriver;
         this.init();
     }
 

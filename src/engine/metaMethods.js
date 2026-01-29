@@ -452,6 +452,10 @@ class MetaAnalysisMethods {
             sxx += weights[i] * (precision[i] - meanP) ** 2;
         }
 
+        if (!Number.isFinite(sxx) || Math.abs(sxx) < 1e-12) {
+            return { error: 'Precision has no variance; Egger regression not identifiable', test: 'Egger' };
+        }
+
         const slope = sxy / sxx;
         const intercept = meanY - slope * meanP;
 
@@ -551,22 +555,24 @@ class MetaAnalysisMethods {
 
         // Also compute exact p-value for small samples using permutation distribution
         // For n >= 10, normal approximation is adequate
-        let exactPValue = null;
+        let approxPValue = null;
         if (n < 10) {
             // Use continuity correction for small samples
             const zCorrected = (Math.abs(tau) - 1/(n*(n-1)/2)) / seTau;
-            exactPValue = 2 * (1 - this.normalCDF(Math.max(0, zCorrected)));
+            approxPValue = 2 * (1 - this.normalCDF(Math.max(0, zCorrected)));
         }
 
+        const pUsed = approxPValue || pValue;
         return {
             test: 'Begg',
             tau: tau,
             z: z,
-            pValue: exactPValue || pValue,
-            significant: (exactPValue || pValue) < this.options.alpha,
+            pValue: pUsed,
+            pValueApprox: approxPValue,
+            significant: pUsed < this.options.alpha,
             method: n < 10 ? 'Continuity-corrected normal approximation' : 'Normal approximation',
-            note: 'Variance adjusted for dependence through pooled estimate (Begg & Mazumdar 1994)',
-            interpretation: (exactPValue || pValue) < this.options.alpha ?
+            note: 'Variance adjusted for dependence through pooled estimate (Begg & Mazumdar 1994); small-sample p-value is approximate',
+            interpretation: pUsed < this.options.alpha ?
                 'Significant rank correlation (possible publication bias)' :
                 'No significant rank correlation detected'
         };
@@ -581,7 +587,7 @@ class MetaAnalysisMethods {
      * @param {string} side - 'left', 'right', or 'auto' (default: 'auto')
      * @returns {Object} Adjusted effect with filled studies
      */
-    trimAndFill(studies, side = 'auto') {
+    trimAndFill(studies, side = 'auto', modelType = null) {
         // Input validation
         if (!Array.isArray(studies) || studies.length < 3) {
             return { error: 'Need at least 3 studies', method: 'Trim-and-Fill' };
@@ -591,7 +597,8 @@ class MetaAnalysisMethods {
 
         // Initial pooled effect
         let pooled = this.calculatePooledEffect(studies);
-        let theta = pooled.fixed.effect;
+        const resolvedModel = modelType || (pooled.heterogeneity?.tauSquared > 0 ? 'random' : 'fixed');
+        let theta = pooled[resolvedModel]?.effect ?? pooled.fixed.effect;
 
         // Determine side if auto
         if (side === 'auto') {
@@ -682,34 +689,34 @@ class MetaAnalysisMethods {
             // Recalculate pooled effect using random-effects when τ² > 0
             // Reference: Duval & Tweedie (2000), Biometrics
             pooled = this.calculatePooledEffect(filledStudies);
-            const useRandom = pooled.heterogeneity.tauSquared > 0;
-            theta = useRandom ? pooled.random.effect : pooled.fixed.effect;
+            const useModel = modelType || (pooled.heterogeneity.tauSquared > 0 ? 'random' : 'fixed');
+            theta = pooled[useModel]?.effect ?? pooled.fixed.effect;
             iteration++;
         }
 
         // Use random-effects estimates when heterogeneity present
         const originalPooled = this.calculatePooledEffect(studies);
         const useRandomEffects = pooled.heterogeneity.tauSquared > 0;
-        const modelType = useRandomEffects ? 'random' : 'fixed';
+        const finalModelType = modelType || (useRandomEffects ? 'random' : 'fixed');
 
         return {
             original: {
                 nStudies: studies.length,
-                effect: originalPooled[modelType].effect,
-                model: modelType
+                effect: originalPooled[finalModelType].effect,
+                model: finalModelType
             },
             adjusted: {
                 nStudies: filledStudies.length,
-                effect: pooled[modelType].effect,
-                ci_lower: pooled[modelType].ci_lower,
-                ci_upper: pooled[modelType].ci_upper,
-                model: modelType
+                effect: pooled[finalModelType].effect,
+                ci_lower: pooled[finalModelType].ci_lower,
+                ci_upper: pooled[finalModelType].ci_upper,
+                model: finalModelType
             },
             nMissing: k0,
             side: side,
             imputedStudies: filledStudies.filter(s => s.imputed),
             interpretation: k0 > 0 ?
-                `Estimated ${k0} missing studies on the ${side} side. Adjusted effect: ${pooled[modelType].effect.toFixed(3)} (${modelType}-effects)` :
+                `Estimated ${k0} missing studies on the ${side} side. Adjusted effect: ${pooled[finalModelType].effect.toFixed(3)} (${finalModelType}-effects)` :
                 'No evidence of missing studies'
         };
     }
@@ -864,7 +871,9 @@ class MetaAnalysisMethods {
                 I2: pooled.heterogeneity.I2,
                 tau: pooled.heterogeneity.tau,
                 change: pooled.random.effect - fullPooled.random.effect,
-                percentChange: (pooled.random.effect - fullPooled.random.effect) / fullPooled.random.effect * 100
+                percentChange: Math.abs(fullPooled.random.effect) > 1e-12 ?
+                    (pooled.random.effect - fullPooled.random.effect) / fullPooled.random.effect * 100 :
+                    null
             });
         }
 
@@ -872,15 +881,28 @@ class MetaAnalysisMethods {
         const maxChange = Math.max(...results.map(r => Math.abs(r.change)));
         const influential = results.filter(r => Math.abs(r.change) > 0.5 * maxChange);
 
-        // Return array for compatibility, with metadata attached
-        results.fullEffect = fullPooled.random.effect;
-        results.range = {
+        const fullEffect = fullPooled.random.effect;
+        const range = {
             min: Math.min(...results.map(r => r.effect)),
             max: Math.max(...results.map(r => r.effect))
         };
-        results.influential = influential.map(r => r.studyLabel);
-        results.isRobust = maxChange < Math.abs(fullPooled.random.effect * 0.2);
-        return results;
+        const influentialLabels = influential.map(r => r.studyLabel);
+        const isRobust = maxChange < Math.abs(fullEffect * 0.2);
+
+        // Preserve the previous array-style access while restoring the object contract.
+        results.fullEffect = fullEffect;
+        results.range = range;
+        results.influential = influentialLabels;
+        results.isRobust = isRobust;
+
+        return {
+            results,
+            fullEffect,
+            range,
+            influential: influentialLabels,
+            isRobust,
+            asArray: results
+        };
     }
 
     /**

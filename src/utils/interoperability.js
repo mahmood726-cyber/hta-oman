@@ -57,8 +57,8 @@ class TreeAgeImporter {
         return {
             time_horizon: this._parseNumber(settings?.querySelector('TimeHorizon')?.textContent, 20),
             cycle_length: this._parseNumber(settings?.querySelector('CycleLength')?.textContent, 1),
-            discount_rate_costs: this._parseNumber(settings?.querySelector('DiscountRateCosts')?.textContent, 0.035),
-            discount_rate_outcomes: this._parseNumber(settings?.querySelector('DiscountRateOutcomes')?.textContent, 0.035),
+            discount_rate_costs: this._parseNumber(settings?.querySelector('DiscountRateCosts')?.textContent, 0.03),
+            discount_rate_outcomes: this._parseNumber(settings?.querySelector('DiscountRateOutcomes')?.textContent, 0.03),
             half_cycle_correction: settings?.querySelector('HalfCycleCorrection')?.textContent === 'true',
             initial_age: this._parseNumber(settings?.querySelector('InitialAge')?.textContent, 40)
         };
@@ -564,22 +564,27 @@ class ExcelHandler {
     }
 
     _exportPSAResults(results) {
-        const headers = ['Iteration', 'Strategy', 'Cost', 'Effect', 'ICER', 'NMB_20000', 'NMB_50000', 'NMB_100000'];
+        const thresholds = Array.isArray(results?.wtp_thresholds) && results.wtp_thresholds.length
+            ? results.wtp_thresholds
+            : (Array.isArray(results?.settings_snapshot?.wtp_thresholds) && results.settings_snapshot.wtp_thresholds.length
+                ? results.settings_snapshot.wtp_thresholds
+                : [20000, 50000, 100000]);
+        const nmbHeaders = thresholds.map((t) => `NMB_${Math.round(t)}`);
+        const headers = ['Iteration', 'Strategy', 'Cost', 'Effect', 'ICER', ...nmbHeaders];
         const rows = [];
 
         for (let i = 0; i < results.iterations?.length; i++) {
             const iter = results.iterations[i];
             for (const strategy of Object.keys(iter.strategies || {})) {
                 const s = iter.strategies[strategy];
+                const nmbs = thresholds.map((t) => s.effect * t - s.cost);
                 rows.push([
                     i + 1,
                     strategy,
                     s.cost,
                     s.effect,
                     s.icer || '',
-                    s.effect * 20000 - s.cost,
-                    s.effect * 50000 - s.cost,
-                    s.effect * 100000 - s.cost
+                    ...nmbs
                 ]);
             }
         }

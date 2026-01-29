@@ -15,6 +15,34 @@
  * This provides capabilities similar to TreeAge Pro's DES module.
  */
 
+var OmanGuidanceRef = (function resolveOmanGuidance() {
+    if (typeof globalThis !== 'undefined' && globalThis.OmanHTAGuidance) {
+        return globalThis.OmanHTAGuidance;
+    }
+    if (typeof require === 'function') {
+        try {
+            return require('../utils/omanGuidance');
+        } catch (err) {
+            return null;
+        }
+    }
+    return null;
+})();
+
+var guidanceDefaults = OmanGuidanceRef?.defaults || {
+    discount_rate_costs: 0.03,
+    currency: 'OMR'
+};
+
+function resolveWtpThresholds(settings) {
+    if (OmanGuidanceRef?.resolveWtpThresholds) {
+        return OmanGuidanceRef.resolveWtpThresholds(settings).thresholds;
+    }
+    const explicit = Array.isArray(settings?.wtp_thresholds) ? settings.wtp_thresholds : null;
+    if (explicit && explicit.length) return explicit;
+    return [20000, 30000, 50000];
+}
+
 class DiscreteEventSimulationEngine {
     constructor(options = {}) {
         this.options = {
@@ -539,10 +567,14 @@ class DiscreteEventSimulationEngine {
      */
     async run(modelDefinition, parameterGenerator = null, options = {}) {
         const {
-            discountRate = 0.035,
+            discountRate,
             perspective = 'healthcare',
-            onProgress = null
+            onProgress = null,
+            settings = {}
         } = options;
+        const resolvedDiscountRate = Number.isFinite(discountRate)
+            ? discountRate
+            : (settings.discount_rate_costs ?? guidanceDefaults.discount_rate_costs);
 
         this.defineModel(modelDefinition);
         this.rng = new PCG32(this.options.seed);
@@ -597,12 +629,12 @@ class DiscreteEventSimulationEngine {
             const discountedCosts = this.applyDiscounting(
                 patient.accumulators.costs,
                 patient.accumulators.lifeYears,
-                discountRate
+                resolvedDiscountRate
             );
             const discountedQALYs = this.applyDiscounting(
                 patient.accumulators.qalys,
                 patient.accumulators.lifeYears,
-                discountRate
+                resolvedDiscountRate
             );
 
             // Accumulate results
@@ -752,10 +784,15 @@ class DiscreteEventSimulationEngine {
     async runWithPSA(modelDefinition, parameterSampler, psaOptions = {}) {
         const {
             iterations = 1000,
-            wtp = [20000, 30000, 50000],
-            discountRate = 0.035,
-            onProgress = null
+            wtp,
+            discountRate,
+            onProgress = null,
+            settings = {}
         } = psaOptions;
+        const resolvedWtp = Array.isArray(wtp) && wtp.length ? wtp : resolveWtpThresholds(settings);
+        const resolvedDiscountRate = Number.isFinite(discountRate)
+            ? discountRate
+            : (settings.discount_rate_costs ?? guidanceDefaults.discount_rate_costs);
 
         const psaResults = {
             iterations: [],
@@ -764,7 +801,9 @@ class DiscreteEventSimulationEngine {
                 meanQALY: { mean: 0, se: 0, ci: [] }
             },
             ceac: {},
-            evpi: 0
+            evpi: 0,
+            wtp_thresholds: resolvedWtp,
+            discount_rate_used: resolvedDiscountRate
         };
 
         let costSum = 0, qalySumm = 0;
@@ -782,7 +821,10 @@ class DiscreteEventSimulationEngine {
 
             // Run simulation with these parameters
             this.rng = new PCG32(this.options.seed + i);
-            const result = await this.run(modelDefinition, paramGenerator, { discountRate });
+            const result = await this.run(modelDefinition, paramGenerator, {
+                discountRate: resolvedDiscountRate,
+                settings
+            });
 
             // Store iteration results
             psaResults.iterations.push({

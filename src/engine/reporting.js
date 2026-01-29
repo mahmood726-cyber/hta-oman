@@ -14,6 +14,87 @@
  * - NICE Methods Guide for Health Technology Evaluation (2022)
  */
 
+var OmanGuidanceRef = (function resolveOmanGuidance() {
+    if (typeof globalThis !== 'undefined' && globalThis.OmanHTAGuidance) {
+        return globalThis.OmanHTAGuidance;
+    }
+    if (typeof require === 'function') {
+        try {
+            return require('../utils/omanGuidance');
+        } catch (err) {
+            return null;
+        }
+    }
+    return null;
+})();
+
+var guidanceDefaults = OmanGuidanceRef?.defaults || {
+    discount_rate_costs: 0.03,
+    discount_rate_qalys: 0.03,
+    currency: 'OMR',
+    wtp_multipliers: [1, 2, 3],
+    placeholder_gdp_per_capita_omr: 10000
+};
+
+function normalizeSettings(settings) {
+    if (OmanGuidanceRef?.normalizeSettings) {
+        return OmanGuidanceRef.normalizeSettings(settings);
+    }
+    const s = settings || {};
+    return {
+        ...s,
+        discount_rate_costs: s.discount_rate_costs ?? guidanceDefaults.discount_rate_costs,
+        discount_rate_qalys: s.discount_rate_qalys ?? guidanceDefaults.discount_rate_qalys,
+        currency: s.currency || guidanceDefaults.currency,
+        gdp_per_capita_omr: s.gdp_per_capita_omr,
+        wtp_thresholds: s.wtp_thresholds,
+        wtp_multipliers: Array.isArray(s.wtp_multipliers) && s.wtp_multipliers.length
+            ? s.wtp_multipliers
+            : guidanceDefaults.wtp_multipliers
+    };
+}
+
+function resolveWtpThresholds(settings) {
+    if (OmanGuidanceRef?.resolveWtpThresholds) {
+        return OmanGuidanceRef.resolveWtpThresholds(settings).thresholds;
+    }
+    const explicit = Array.isArray(settings?.wtp_thresholds) ? settings.wtp_thresholds : null;
+    if (explicit && explicit.length) return explicit;
+    const base = settings?.gdp_per_capita_omr || guidanceDefaults.placeholder_gdp_per_capita_omr;
+    const multipliers = Array.isArray(settings?.wtp_multipliers) && settings.wtp_multipliers.length
+        ? settings.wtp_multipliers
+        : guidanceDefaults.wtp_multipliers;
+    return multipliers.map((m) => base * m);
+}
+
+function resolvePrimaryWtp(settings) {
+    const thresholds = resolveWtpThresholds(settings);
+    return thresholds[0];
+}
+
+function currencyCode(settings) {
+    return settings?.currency || guidanceDefaults.currency;
+}
+
+function formatCurrencyValue(value, settings, digits = 0) {
+    if (!Number.isFinite(value)) return String(value ?? 'NA');
+    if (OmanGuidanceRef?.formatCurrency) {
+        return OmanGuidanceRef.formatCurrency(value, settings, { maximumFractionDigits: digits });
+    }
+    const code = currencyCode(settings);
+    return `${code} ${value.toLocaleString('en-US', { maximumFractionDigits: digits })}`;
+}
+
+function formatWtpLabel(wtp, settings) {
+    const code = currencyCode(settings);
+    const n = Number(wtp);
+    if (!Number.isFinite(n)) return `${code} -`;
+    if (Math.abs(n) >= 1000) {
+        return `${code} ${(n / 1000).toFixed(0)}k`;
+    }
+    return `${code} ${n.toLocaleString('en-US')}`;
+}
+
 class ReportingStandards {
     constructor() {
         this.cheers2022Items = this.initCHEERS2022();
@@ -73,23 +154,26 @@ class ReportingStandards {
      * Initialize NICE Reference Case requirements
      */
     initNICEReferenceCase() {
+        const baseGDP = guidanceDefaults.placeholder_gdp_per_capita_omr;
+        const multipliers = guidanceDefaults.wtp_multipliers;
+        const upper = baseGDP * Math.max(...multipliers);
         return {
             perspective: {
-                required: 'NHS and PSS (personal social services)',
-                description: 'Costs to the NHS and personal social services'
+                required: 'Oman payer/provider perspective',
+                description: 'Costs to the Oman health system (payer/provider base case)'
             },
             discountRate: {
-                costs: 0.035,
-                qalys: 0.035,
-                description: 'Annual discount rate of 3.5% for costs and health effects'
+                costs: 0.03,
+                qalys: 0.03,
+                description: 'Annual discount rate of 3% for costs and outcomes (Oman MOH guidance)'
             },
             outcomesMeasure: {
                 required: 'QALYs',
-                description: 'Quality-adjusted life years (QALYs)'
+                description: 'Cost-utility with QALYs is preferred when added value is demonstrated'
             },
             utilityMeasure: {
-                required: 'EQ-5D',
-                description: 'EQ-5D utility values from general population'
+                required: 'Validated preference-based measures (e.g., EQ-5D)',
+                description: 'Preference-based utility values are recommended when available'
             },
             timeHorizon: {
                 required: 'Lifetime where appropriate',
@@ -99,16 +183,17 @@ class ReportingStandards {
             psa: {
                 required: true,
                 minimumIterations: 10000,
-                description: 'Probabilistic sensitivity analysis with ≥10,000 iterations'
+                description: 'Probabilistic sensitivity analysis recommended with at least 10,000 iterations'
             },
             halfCycleCorrection: {
                 required: true,
                 description: 'Half-cycle correction for Markov models'
             },
             wtpThreshold: {
-                lower: 20000,
-                upper: 30000,
-                description: 'Cost-effectiveness threshold £20,000-£30,000 per QALY'
+                lower: baseGDP,
+                upper: upper,
+                multipliers: multipliers,
+                description: 'Use 1x GDP per capita (OMR) as the base CET; consider higher multiples by severity/priority'
             },
             validation: {
                 technical: true,
@@ -266,11 +351,15 @@ class ReportingStandards {
                 };
 
             case 10: // Discount rate
-                const dr = settings.discount_rate_costs;
+                const s = normalizeSettings(settings);
+                const dr = s.discount_rate_costs;
+                const drQ = s.discount_rate_qalys ?? dr;
                 return {
                     status: dr !== undefined ? 'Reported' : 'Not reported',
-                    details: dr !== undefined ? `Costs: ${(dr * 100).toFixed(1)}%, QALYs: ${((settings.discount_rate_qalys || dr) * 100).toFixed(1)}%` : null,
-                    recommendation: dr !== 0.035 ? 'NICE recommends 3.5% discount rate' : null
+                    details: dr !== undefined ? `Costs: ${(dr * 100).toFixed(1)}%, QALYs: ${(drQ * 100).toFixed(1)}%` : null,
+                    recommendation: dr === 0.03 && drQ === 0.03
+                        ? null
+                        : 'Oman MOH HTA guidance recommends 3% discounting for costs and outcomes'
                 };
 
             case 15: // Model type
@@ -355,40 +444,93 @@ class ReportingStandards {
      * Assess NICE Reference Case compliance
      */
     assessNICECompliance(project, psaResults = null) {
-        const settings = project.settings || {};
+        const settings = normalizeSettings(project.settings || {});
+        const primaryWtp = resolvePrimaryWtp(settings);
+        const wtpThresholds = resolveWtpThresholds(settings);
+        const primaryWtpLabel = formatWtpLabel(primaryWtp, settings);
+        const near = (a, b) => Number.isFinite(a) && Math.abs(a - b) < 1e-6;
+
         const results = {
-            version: 'NICE Reference Case 2022',
+            version: 'Oman MOH HTA guidance (2025)',
             assessmentDate: new Date().toISOString(),
             items: [],
             overallCompliant: true
         };
 
         // Check perspective
+        const perspectiveText = settings.perspective || '';
+        const perspectiveOk = /payer|provider|health/i.test(perspectiveText);
         results.items.push({
             requirement: 'Perspective',
             expected: this.niceReferenceCase.perspective.required,
-            status: settings.perspective?.includes('NHS') ? 'Compliant' : 'Non-compliant',
+            status: perspectiveOk ? 'Compliant' : 'Review needed',
             details: settings.perspective || 'Not specified'
         });
 
         // Check discount rate
         const drCosts = settings.discount_rate_costs;
         const drQalys = settings.discount_rate_qalys;
+        const costsOk = near(drCosts, 0.03);
+        const qalysOk = near(drQalys, 0.03);
         results.items.push({
             requirement: 'Discount rate',
-            expected: '3.5% for costs and QALYs',
-            status: drCosts === 0.035 && drQalys === 0.035 ? 'Compliant' :
-                   (drCosts === 0.035 || drQalys === 0.035) ? 'Partially compliant' : 'Non-compliant',
-            details: `Costs: ${(drCosts * 100 || 0).toFixed(1)}%, QALYs: ${(drQalys * 100 || 0).toFixed(1)}%`
+            expected: '3.0% for costs and outcomes',
+            status: costsOk && qalysOk ? 'Compliant' : (costsOk || qalysOk ? 'Partially compliant' : 'Non-compliant'),
+            details: `Costs: ${((drCosts ?? 0) * 100).toFixed(1)}%, QALYs: ${((drQalys ?? 0) * 100).toFixed(1)}%`
         });
 
         // Check time horizon
         const horizon = settings.time_horizon || 0;
         results.items.push({
             requirement: 'Time horizon',
-            expected: `≥${this.niceReferenceCase.timeHorizon.minimumYears} years for chronic conditions`,
+            expected: `${this.niceReferenceCase.timeHorizon.minimumYears}+ years for chronic conditions`,
             status: horizon >= this.niceReferenceCase.timeHorizon.minimumYears ? 'Compliant' : 'Review needed',
             details: `${horizon} years`
+        });
+
+        // Check WTP thresholds / GDP per capita
+        const hasGDP = Number.isFinite(settings.gdp_per_capita_omr);
+        const gdpConfirmed = settings.gdp_per_capita_confirmed === true;
+        const hasExplicitThresholds = Array.isArray(settings.wtp_thresholds) && settings.wtp_thresholds.length > 0;
+        const thresholdsLabel = wtpThresholds.map((w) => formatWtpLabel(w, settings)).join(', ');
+        results.items.push({
+            requirement: 'Cost-effectiveness thresholds',
+            expected: '1x GDP per capita (OMR) base with higher multiples by priority',
+            status: (hasGDP && gdpConfirmed) || hasExplicitThresholds ? 'Compliant' : 'Review needed',
+            details: `Primary: ${primaryWtpLabel}; Thresholds: ${thresholdsLabel}; GDP per capita: ${hasGDP ? settings.gdp_per_capita_omr.toLocaleString('en-US') : 'Not set'}; Confirmed: ${gdpConfirmed ? 'Yes' : 'No'}`
+        });
+
+        // Budget impact analysis horizon
+        const biaHorizon = Number.isFinite(settings.bia_horizon_years) ? settings.bia_horizon_years : null;
+        results.items.push({
+            requirement: 'Budget impact horizon',
+            expected: '4 years',
+            status: biaHorizon === 4 ? 'Compliant' : 'Review needed',
+            details: biaHorizon ? `${biaHorizon} years` : 'Not specified'
+        });
+
+        // Budget impact discounting
+        const biaDiscount = settings.bia_discount_rate;
+        results.items.push({
+            requirement: 'Budget impact discounting',
+            expected: '0% (no discounting)',
+            status: biaDiscount === 0 || biaDiscount === undefined ? 'Compliant' : 'Review needed',
+            details: biaDiscount === undefined ? 'Not specified' : `${((biaDiscount ?? 0) * 100).toFixed(1)}%`
+        });
+
+        // Transparency
+        const coi = project?.metadata?.conflicts_of_interest || project?.metadata?.coi_statement;
+        results.items.push({
+            requirement: 'Conflict of interest disclosure',
+            expected: 'Disclosed',
+            status: coi ? 'Compliant' : 'Review needed',
+            details: coi || 'Not provided'
+        });
+        results.items.push({
+            requirement: 'Public dossier availability',
+            expected: 'Publicly available',
+            status: project?.metadata?.public_dossier_available === true ? 'Compliant' : 'Review needed',
+            details: project?.metadata?.public_dossier_available === true ? 'Yes' : 'Not specified'
         });
 
         // Check PSA
@@ -396,8 +538,8 @@ class ReportingStandards {
             const nIterations = psaResults.iterations || 0;
             results.items.push({
                 requirement: 'PSA iterations',
-                expected: `≥${this.niceReferenceCase.psa.minimumIterations.toLocaleString()}`,
-                status: nIterations >= this.niceReferenceCase.psa.minimumIterations ? 'Compliant' : 'Non-compliant',
+                expected: `${this.niceReferenceCase.psa.minimumIterations.toLocaleString()}+`,
+                status: nIterations >= this.niceReferenceCase.psa.minimumIterations ? 'Compliant' : 'Review needed',
                 details: `${nIterations.toLocaleString()} iterations`
             });
         }
@@ -412,7 +554,7 @@ class ReportingStandards {
 
         // Determine overall compliance
         results.overallCompliant = results.items.every(i =>
-            i.status === 'Compliant' || i.status === 'Partially compliant'
+            i.status === 'Compliant' || i.status === 'Partially compliant' || i.status === 'Review needed'
         );
 
         // Generate summary
@@ -623,12 +765,12 @@ class ReportingStandards {
                 subsections: [
                     {
                         heading: 'Base-Case Analysis',
-                        content: this.describeBaseCaseResults(results.baseCase),
+                        content: this.describeBaseCaseResults(results.baseCase, settings),
                         table: results.baseCase?.summary
                     },
                     {
                         heading: 'Probabilistic Sensitivity Analysis',
-                        content: this.describePSAResults(results.psa),
+                        content: this.describePSAResults(results.psa, settings),
                         figures: ['CE plane', 'CEAC']
                     }
                 ]
@@ -654,10 +796,10 @@ class ReportingStandards {
                     recommendations: cheersCompliance.recommendations
                 },
                 {
-                    heading: 'NICE Reference Case',
+                    heading: 'Oman HTA Guidance',
                     content: niceCompliance.overallCompliant ?
-                        'The analysis is compliant with the NICE reference case.' :
-                        'Some deviations from the NICE reference case were identified.',
+                        'The analysis is broadly aligned with Oman MOH HTA guidance.' :
+                        'Some deviations from Oman MOH HTA guidance were identified.',
                     items: niceCompliance.items
                 }
             ]
@@ -671,6 +813,9 @@ class ReportingStandards {
      */
     generateExecutiveSummary(project, results) {
         const strategies = Object.keys(project.strategies || {});
+        const settings = normalizeSettings(project.settings || {});
+        const primaryWtp = resolvePrimaryWtp(settings);
+        const primaryWtpLabel = formatWtpLabel(primaryWtp, settings);
 
         let summary = `This economic evaluation assessed ${strategies.length} treatment strategies. `;
 
@@ -680,14 +825,18 @@ class ReportingStandards {
 
             if (dominant) {
                 summary += `${dominant} was dominant (more effective and less costly). `;
-            } else if (icer) {
-                summary += `The incremental cost-effectiveness ratio was £${icer.toLocaleString()} per QALY. `;
+            } else if (Number.isFinite(icer)) {
+                summary += `The incremental cost-effectiveness ratio was ${formatCurrencyValue(icer, settings, 0)} per QALY. `;
             }
         }
 
         if (results.psa) {
-            const probCE = results.psa.probability_ce_30k || 0;
-            summary += `At a willingness-to-pay threshold of £30,000/QALY, ` +
+            const probCE = results.psa?.probability_ce?.[primaryWtp]
+                ?? results.psa?.probability_ce_primary
+                ?? results.psa?.probability_ce_30k
+                ?? results.psa?.summary?.prob_ce?.[primaryWtp]
+                ?? 0;
+            summary += `At a willingness-to-pay threshold of ${primaryWtpLabel}/QALY, ` +
                       `the probability of cost-effectiveness was ${(probCE * 100).toFixed(0)}%. `;
         }
 
@@ -739,8 +888,9 @@ class ReportingStandards {
      * Describe analytical approach
      */
     describeAnalyticalApproach(settings, results) {
+        const s = normalizeSettings(settings);
         let content = `Costs and health outcomes were discounted at ` +
-                     `${((settings.discount_rate_costs || 0.035) * 100).toFixed(1)}% per annum. `;
+                     `${(s.discount_rate_costs * 100).toFixed(1)}% per annum (Oman MOH guidance). `;
 
         if (results.psa) {
             content += `Probabilistic sensitivity analysis was conducted using ` +
@@ -758,30 +908,52 @@ class ReportingStandards {
     /**
      * Describe base-case results
      */
-    describeBaseCaseResults(baseCase) {
+    describeBaseCaseResults(baseCase, settings = {}) {
         if (!baseCase) return 'Base-case results not available.';
 
+        const s = normalizeSettings(settings);
         const summary = baseCase.summary || {};
+        const incQalys = Number.isFinite(summary.incremental_qalys)
+            ? summary.incremental_qalys.toFixed(3)
+            : 'NA';
+        const incCosts = Number.isFinite(summary.incremental_costs)
+            ? formatCurrencyValue(summary.incremental_costs, s, 0)
+            : 'NA';
+        const icer = Number.isFinite(summary.icer)
+            ? formatCurrencyValue(summary.icer, s, 0)
+            : 'NA';
+
         return `In the base-case analysis, the intervention resulted in ` +
-               `${summary.incremental_qalys?.toFixed(3) || 'NA'} additional QALYs ` +
-               `at an incremental cost of £${summary.incremental_costs?.toLocaleString() || 'NA'}. ` +
+               `${incQalys} additional QALYs ` +
+               `at an incremental cost of ${incCosts}. ` +
                `The incremental cost-effectiveness ratio was ` +
-               `£${summary.icer?.toLocaleString() || 'NA'} per QALY gained.`;
+               `${icer} per QALY gained.`;
     }
 
     /**
      * Describe PSA results
      */
-    describePSAResults(psa) {
+    describePSAResults(psa, settings = {}) {
         if (!psa) return 'Probabilistic analysis results not available.';
 
-        const probCE = (psa.probability_ce_30k || 0) * 100;
+        const s = normalizeSettings(settings);
+        const primaryWtp = resolvePrimaryWtp(s);
+        const primaryWtpLabel = formatWtpLabel(primaryWtp, s);
+        const probCE = (psa.probability_ce?.[primaryWtp]
+            ?? psa.probability_ce_primary
+            ?? psa.probability_ce_30k
+            ?? psa.summary?.prob_ce?.[primaryWtp]
+            ?? 0) * 100;
+        const ciLower = psa.icer_ci_lower ?? psa.summary?.ci_lower_icer;
+        const ciUpper = psa.icer_ci_upper ?? psa.summary?.ci_upper_icer;
+        const ciText = Number.isFinite(ciLower) && Number.isFinite(ciUpper)
+            ? `${formatCurrencyValue(ciLower, s, 0)} to ${formatCurrencyValue(ciUpper, s, 0)}`
+            : 'NA';
+
         return `Across ${psa.iterations?.toLocaleString() || 'all'} probabilistic iterations, ` +
-               `the intervention was cost-effective at a £30,000/QALY threshold in ` +
+               `the intervention was cost-effective at a ${primaryWtpLabel}/QALY threshold in ` +
                `${probCE.toFixed(1)}% of simulations. ` +
-               `The 95% credible interval for the ICER was ` +
-               `£${psa.icer_ci_lower?.toLocaleString() || 'NA'} to ` +
-               `£${psa.icer_ci_upper?.toLocaleString() || 'NA'}.`;
+               `The 95% credible interval for the ICER was ${ciText}.`;
     }
 
     /**

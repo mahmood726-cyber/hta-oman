@@ -10,7 +10,7 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 from selenium import webdriver
 from selenium.webdriver.edge.options import Options as EdgeOptions
 
-def test_export_features():
+def run_export_feature_checks():
     options = EdgeOptions()
     options.add_argument('--headless=new')
     options.add_argument('--disable-gpu')
@@ -135,17 +135,21 @@ def test_export_features():
 
         print(f"\nTotal: {passed}/{total} tests passed")
 
-        if passed == total:
+        success = passed == total
+        if success:
             print("\nAll export features working correctly!")
             print("Export/Reporting is now 5/5!")
-            return True
         else:
             print("\nSome features need attention.")
-            return False
+        return success
 
     finally:
         driver.quit()
 
+def test_export_features():
+    assert run_export_feature_checks()
+
+
 if __name__ == '__main__':
-    success = test_export_features()
+    success = run_export_feature_checks()
     sys.exit(0 if success else 1)

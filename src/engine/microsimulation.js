@@ -14,6 +14,40 @@
  * - PSA integration
  */
 
+var OmanGuidanceRef = (function resolveOmanGuidance() {
+    if (typeof globalThis !== 'undefined' && globalThis.OmanHTAGuidance) {
+        return globalThis.OmanHTAGuidance;
+    }
+    if (typeof require === 'function') {
+        try {
+            return require('../utils/omanGuidance');
+        } catch (err) {
+            return null;
+        }
+    }
+    return null;
+})();
+
+var guidanceDefaults = OmanGuidanceRef?.defaults || {
+    discount_rate_costs: 0.03,
+    discount_rate_qalys: 0.03,
+    currency: 'OMR'
+};
+
+function resolveWtpThresholds(settings) {
+    if (OmanGuidanceRef?.resolveWtpThresholds) {
+        return OmanGuidanceRef.resolveWtpThresholds(settings).thresholds;
+    }
+    const explicit = Array.isArray(settings?.wtp_thresholds) ? settings.wtp_thresholds : null;
+    if (explicit && explicit.length) return explicit;
+    return [20000, 30000, 50000];
+}
+
+function resolvePrimaryWtp(settings) {
+    const thresholds = resolveWtpThresholds(settings);
+    return thresholds[0];
+}
+
 class MicrosimulationEngine {
     constructor(options = {}) {
         this.options = {
@@ -443,8 +477,9 @@ class MicrosimulationEngine {
         }
 
         // Apply discounting
-        const discountCosts = project.settings?.discount_rate_costs || 0.035;
-        const discountQalys = project.settings?.discount_rate_qalys || 0.035;
+        const settings = project.settings || {};
+        const discountCosts = settings.discount_rate_costs ?? guidanceDefaults.discount_rate_costs;
+        const discountQalys = settings.discount_rate_qalys ?? guidanceDefaults.discount_rate_qalys;
         const discountFactorCosts = 1 / Math.pow(1 + discountCosts, cycle * cycleLength);
         const discountFactorQalys = 1 / Math.pow(1 + discountQalys, cycle * cycleLength);
 
@@ -656,6 +691,9 @@ class MicrosimulationEngine {
     async runWithPSA(project, intOverrides = {}, compOverrides = {}, psaOptions = {}) {
         const iterations = psaOptions.iterations || 1000;
         const patientsPerIteration = psaOptions.patientsPerIteration || 1000;
+        const settings = project.settings || {};
+        const wtpThresholds = resolveWtpThresholds(settings);
+        const primaryWtp = resolvePrimaryWtp(settings);
 
         const results = {
             iterations: iterations,
@@ -663,7 +701,9 @@ class MicrosimulationEngine {
             intervention: { costs: [], qalys: [] },
             comparator: { costs: [], qalys: [] },
             incremental: { costs: [], qalys: [], nmb: [] },
-            summary: {}
+            summary: {},
+            wtp_thresholds: wtpThresholds,
+            primary_wtp: primaryWtp
         };
 
         const params = project.parameters || {};
@@ -709,7 +749,7 @@ class MicrosimulationEngine {
             const incQaly = intResults.summary.mean_qalys - compResults.summary.mean_qalys;
             results.incremental.costs.push(incCost);
             results.incremental.qalys.push(incQaly);
-            results.incremental.nmb.push(incQaly * 30000 - incCost);  // NMB at £30k
+            results.incremental.nmb.push(incQaly * primaryWtp - incCost);
 
             // Progress
             if (this.progressCallback) {
@@ -720,12 +760,27 @@ class MicrosimulationEngine {
         // Summary statistics
         const meanIncCost = results.incremental.costs.reduce((a, b) => a + b, 0) / iterations;
         const meanIncQaly = results.incremental.qalys.reduce((a, b) => a + b, 0) / iterations;
+        const probCE = {};
+        for (const wtp of wtpThresholds) {
+            let ceCount = 0;
+            for (let i = 0; i < iterations; i++) {
+                const incCost = results.incremental.costs[i];
+                const incQaly = results.incremental.qalys[i];
+                if (incQaly * wtp - incCost >= 0) ceCount++;
+            }
+            probCE[wtp] = ceCount / iterations;
+        }
+        const primaryProb = probCE[primaryWtp];
 
         results.summary = {
             mean_incremental_costs: meanIncCost,
             mean_incremental_qalys: meanIncQaly,
             mean_icer: meanIncQaly !== 0 ? meanIncCost / meanIncQaly : Infinity,
-            prob_ce_30k: results.incremental.nmb.filter(x => x > 0).length / iterations
+            prob_ce: probCE,
+            wtp_thresholds: wtpThresholds,
+            primary_wtp: primaryWtp,
+            prob_ce_primary: primaryProb,
+            prob_ce_30k: primaryProb
         };
 
         return results;

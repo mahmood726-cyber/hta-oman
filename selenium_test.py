@@ -26,7 +26,7 @@ from selenium.common.exceptions import (
 )
 
 # Test results tracking
-class TestResults:
+class ResultsTracker:
     def __init__(self):
         self.passed = []
         self.failed = []
@@ -64,7 +64,7 @@ class TestResults:
 
         return len(self.failed) == 0
 
-results = TestResults()
+results = ResultsTracker()
 
 def setup_driver():
     """Setup browser driver - try Edge first since Chrome may be busy"""
@@ -105,6 +105,34 @@ def setup_driver():
         print(f"Failed to create Chrome driver: {e}")
         sys.exit(1)
 
+
+def wait_for_loading(driver, timeout=10):
+    """Wait until the loading overlay is hidden."""
+    try:
+        WebDriverWait(driver, timeout).until(
+            EC.invisibility_of_element_located((By.ID, "loading-overlay"))
+        )
+    except TimeoutException:
+        results.add_warning("Loading overlay", "Overlay still active after timeout")
+
+
+def ensure_demo_loaded(driver):
+    """Ensure demo mode is loaded before navigating sections."""
+    try:
+        main_content = driver.find_element(By.CLASS_NAME, "main-content")
+        if main_content.is_displayed():
+            return
+    except Exception:
+        pass
+
+    try:
+        demo_btn = driver.find_element(By.ID, "btn-demo")
+        driver.execute_script("arguments[0].click();", demo_btn)
+        time.sleep(1)
+        wait_for_loading(driver, timeout=15)
+    except Exception as e:
+        results.add_warning("Demo mode", f"Could not ensure demo mode: {e}")
+
 def test_page_load(driver, file_path):
     """Test that the page loads correctly"""
     print("\n[1] Testing Page Load...")
@@ -112,6 +140,7 @@ def test_page_load(driver, file_path):
     try:
         driver.get(f"file:///{file_path}")
         time.sleep(2)
+        wait_for_loading(driver, timeout=10)
 
         # Check title
         if "HTA Artifact Standard" in driver.title:
@@ -158,7 +187,8 @@ def test_demo_mode(driver):
         # Find and click the demo button (correct ID: btn-demo)
         demo_btn = driver.find_element(By.ID, "btn-demo")
         driver.execute_script("arguments[0].click();", demo_btn)
-        time.sleep(3)  # Give more time for model to load
+        time.sleep(1)
+        wait_for_loading(driver, timeout=15)
 
         # Check if main content is now visible
         try:
@@ -181,6 +211,7 @@ def test_demo_mode(driver):
 def test_all_sections(driver):
     """Test navigation to all sections"""
     print("\n[4] Testing All Navigation Sections...")
+    ensure_demo_loaded(driver)
 
     sections = [
         "summary", "validation", "parameters", "states", "transitions",
@@ -233,6 +264,7 @@ def test_all_sections(driver):
 def test_charts(driver):
     """Test all chart canvases"""
     print("\n[5] Testing Chart Canvases...")
+    ensure_demo_loaded(driver)
 
     chart_ids = [
         "trace-chart", "ce-plane-chart", "ceac-chart",
@@ -270,6 +302,7 @@ def test_charts(driver):
 def test_meta_analysis_features(driver):
     """Test meta-analysis specific features"""
     print("\n[6] Testing Meta-Analysis Features...")
+    ensure_demo_loaded(driver)
 
     # Navigate to meta-methods section
     try:
@@ -295,6 +328,7 @@ def test_meta_analysis_features(driver):
 def test_nma_features(driver):
     """Test network meta-analysis features"""
     print("\n[7] Testing NMA Features...")
+    ensure_demo_loaded(driver)
 
     try:
         nav_item = driver.find_element(By.CSS_SELECTOR, '[data-section="nma"]')
@@ -322,6 +356,7 @@ def test_nma_features(driver):
 def test_publication_bias(driver):
     """Test publication bias features"""
     print("\n[8] Testing Publication Bias Features...")
+    ensure_demo_loaded(driver)
 
     try:
         nav_item = driver.find_element(By.CSS_SELECTOR, '[data-section="pub-bias"]')
@@ -349,6 +384,7 @@ def test_publication_bias(driver):
 def test_survival_analysis(driver):
     """Test survival analysis features"""
     print("\n[9] Testing Survival Analysis Features...")
+    ensure_demo_loaded(driver)
 
     try:
         nav_item = driver.find_element(By.CSS_SELECTOR, '[data-section="survival"]')
@@ -371,6 +407,7 @@ def test_survival_analysis(driver):
 def test_evppi_features(driver):
     """Test EVPPI features"""
     print("\n[10] Testing EVPPI Features...")
+    ensure_demo_loaded(driver)
 
     try:
         nav_item = driver.find_element(By.CSS_SELECTOR, '[data-section="evppi"]')
@@ -393,6 +430,7 @@ def test_evppi_features(driver):
 def test_buttons_and_forms(driver):
     """Test all buttons and form elements"""
     print("\n[11] Testing Buttons and Forms...")
+    ensure_demo_loaded(driver)
 
     try:
         # Count all buttons
@@ -424,6 +462,7 @@ def test_buttons_and_forms(driver):
 def test_responsive_elements(driver):
     """Test responsive layout elements"""
     print("\n[12] Testing Layout and Responsiveness...")
+    ensure_demo_loaded(driver)
 
     try:
         # Check main container
@@ -447,6 +486,7 @@ def test_responsive_elements(driver):
 def test_javascript_functions(driver):
     """Test that key JavaScript functions exist"""
     print("\n[13] Testing JavaScript Functions...")
+    ensure_demo_loaded(driver)
 
     functions_to_test = [
         "showSection",
@@ -469,6 +509,7 @@ def test_javascript_functions(driver):
 def test_chart_library(driver):
     """Test that Chart.js is loaded and working"""
     print("\n[14] Testing Chart.js Library...")
+    ensure_demo_loaded(driver)
 
     try:
         chart_exists = driver.execute_script("return typeof Chart !== 'undefined'")

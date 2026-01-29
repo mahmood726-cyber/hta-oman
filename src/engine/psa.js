@@ -12,11 +12,76 @@
  * - Summary statistics with confidence intervals
  */
 
+var OmanGuidanceRef = (function resolveOmanGuidance() {
+    if (typeof globalThis !== 'undefined' && globalThis.OmanHTAGuidance) {
+        return globalThis.OmanHTAGuidance;
+    }
+    if (typeof require === 'function') {
+        try {
+            return require('../utils/omanGuidance');
+        } catch (err) {
+            return null;
+        }
+    }
+    return null;
+})();
+
+var guidanceDefaults = OmanGuidanceRef?.defaults || {
+    discount_rate_costs: 0.03,
+    discount_rate_qalys: 0.03,
+    currency: 'OMR',
+    placeholder_gdp_per_capita_omr: 10000
+};
+
+const DEFAULT_WTP_MAX = 100000;
+const DEFAULT_WTP_STEP = 1000;
+
+function resolveWtpThresholds(settings) {
+    if (OmanGuidanceRef?.resolveWtpThresholds) {
+        return OmanGuidanceRef.resolveWtpThresholds(settings).thresholds;
+    }
+    const explicit = Array.isArray(settings?.wtp_thresholds) ? settings.wtp_thresholds : null;
+    if (explicit && explicit.length) return explicit;
+    return [20000, 30000, 50000];
+}
+
+function resolvePrimaryWtp(settings) {
+    const thresholds = resolveWtpThresholds(settings);
+    return thresholds[0];
+}
+
+function resolveWtpRange(settings, options) {
+    const thresholds = resolveWtpThresholds(settings);
+    const maxThreshold = Math.max(...thresholds);
+
+    const wtpMin = options.wtpMin ?? 0;
+    let wtpMax = options.wtpMax ?? DEFAULT_WTP_MAX;
+    const wtpStep = options.wtpStep ?? DEFAULT_WTP_STEP;
+
+    // If the WTP max is the generic default, adapt it to the project's thresholds.
+    if (wtpMax === DEFAULT_WTP_MAX && Number.isFinite(maxThreshold)) {
+        wtpMax = Math.max(maxThreshold, Math.round(maxThreshold * 1.5));
+    }
+
+    return { wtpMin, wtpMax, wtpStep, thresholds };
+}
+
+function formatCurrency(value, settings, options) {
+    if (OmanGuidance?.formatCurrency) {
+        return OmanGuidance.formatCurrency(value, settings, options);
+    }
+    const currency = settings?.currency || guidanceDefaults.currency;
+    const symbol = currency ? currency + ' ' : '';
+    if (!Number.isFinite(value)) return String(value);
+    const digits = options?.maximumFractionDigits ?? 0;
+    return symbol + value.toLocaleString('en-US', { maximumFractionDigits: digits });
+}
+
 class PSAEngine {
     constructor(options = {}) {
         this.options = {
             seed: 12345,
-            iterations: 10000,  // NICE guidance: minimum 10,000 for stable results
+            iterations: 10000,  // Recommended minimum for stable results
             wtpMin: 0,
             wtpMax: 100000,
             wtpStep: 1000,
@@ -61,6 +126,9 @@ class PSAEngine {
     async run(project, interventionOverrides = {}, comparatorOverrides = {}) {
         const startTime = performance.now();
         const iterations = this.options.iterations;
+        const settings = project.settings || {};
+        const wtpInfo = resolveWtpRange(settings, this.options);
+        const primaryWtp = resolvePrimaryWtp(settings);
 
         // Reset RNG with seed for reproducibility
         this.rng = new PCG32(this.options.seed);
@@ -113,10 +181,10 @@ class PSAEngine {
         }
 
         // Compute summary statistics
-        const summary = this.computeSummary(incCosts, incQalys, icerValues);
+        const summary = this.computeSummary(incCosts, incQalys, icerValues, settings);
 
         // Generate CEAC
-        const ceac = this.computeCEAC(incCosts, incQalys);
+        const ceac = this.computeCEAC(incCosts, incQalys, settings, wtpInfo);
 
         // Compute CE plane quadrant distribution
         const quadrants = this.computeQuadrants(incCosts, incQalys);
@@ -129,6 +197,22 @@ class PSAEngine {
             summary: summary,
             ceac: ceac,
             quadrants: quadrants,
+            wtp_thresholds: wtpInfo.thresholds,
+            primary_wtp: primaryWtp,
+            wtp_range: {
+                min: wtpInfo.wtpMin,
+                max: wtpInfo.wtpMax,
+                step: wtpInfo.wtpStep
+            },
+            guidance_note: OmanGuidance?.guidanceNote ? OmanGuidance.guidanceNote(settings) : null,
+            settings_snapshot: {
+                currency: settings.currency || guidanceDefaults.currency,
+                discount_rate_costs: settings.discount_rate_costs ?? guidanceDefaults.discount_rate_costs,
+                discount_rate_qalys: settings.discount_rate_qalys ?? guidanceDefaults.discount_rate_qalys,
+                gdp_per_capita_omr: settings.gdp_per_capita_omr,
+                wtp_thresholds: settings.wtp_thresholds,
+                wtp_multipliers: settings.wtp_multipliers
+            },
             scatter: {
                 incremental_costs: incCosts,
                 incremental_qalys: incQalys
@@ -746,9 +830,17 @@ class PSAEngine {
     /**
      * Compute summary statistics
      */
-    computeSummary(incCosts, incQalys, icerValues) {
+    computeSummary(incCosts, incQalys, icerValues, settings = {}) {
         // Filter valid ICERs (remove Inf, NaN)
         const validIcers = icerValues.filter(x => isFinite(x));
+        const wtpThresholds = resolveWtpThresholds(settings);
+        const primaryWtp = resolvePrimaryWtp(settings);
+
+        const probCE = {};
+        for (const wtp of wtpThresholds) {
+            probCE[wtp] = this.computeProbCE(incCosts, incQalys, wtp);
+        }
+        const primaryProb = probCE[primaryWtp];
 
         return {
             mean_incremental_costs: this.mean(incCosts),
@@ -767,10 +859,13 @@ class PSAEngine {
             ci_lower_icer: validIcers.length > 0 ? this.percentile(validIcers, 0.025) : null,
             ci_upper_icer: validIcers.length > 0 ? this.percentile(validIcers, 0.975) : null,
 
-            // Probability cost-effective at common thresholds
-            prob_ce_20k: this.computeProbCE(incCosts, incQalys, 20000),
-            prob_ce_30k: this.computeProbCE(incCosts, incQalys, 30000),
-            prob_ce_50k: this.computeProbCE(incCosts, incQalys, 50000)
+            prob_ce: probCE,
+            wtp_thresholds: wtpThresholds,
+            primary_wtp: primaryWtp,
+            // Compatibility fields: treat the primary Oman threshold as the headline probability.
+            prob_ce_20k: primaryProb,
+            prob_ce_30k: primaryProb,
+            prob_ce_50k: primaryProb
         };
     }
 
@@ -793,11 +888,22 @@ class PSAEngine {
     /**
      * Compute CEAC (Cost-Effectiveness Acceptability Curve)
      */
-    computeCEAC(incCosts, incQalys) {
+    computeCEAC(incCosts, incQalys, settings = {}, wtpInfo = null) {
         const ceac = [];
-        const { wtpMin, wtpMax, wtpStep } = this.options;
+        const info = wtpInfo || resolveWtpRange(settings, this.options);
 
-        for (let wtp = wtpMin; wtp <= wtpMax; wtp += wtpStep) {
+        const wtpPoints = [];
+        for (let wtp = info.wtpMin; wtp <= info.wtpMax; wtp += info.wtpStep) {
+            wtpPoints.push(wtp);
+        }
+        // Ensure the guidance thresholds appear exactly on the CEAC.
+        for (const threshold of info.thresholds) {
+            wtpPoints.push(threshold);
+        }
+
+        const uniquePoints = Array.from(new Set(wtpPoints)).sort((a, b) => a - b);
+
+        for (const wtp of uniquePoints) {
             const prob = this.computeProbCE(incCosts, incQalys, wtp);
             ceac.push({ wtp, probability: prob });
         }
@@ -908,13 +1014,15 @@ class DSAEngine {
      * @param {number} wtp - WTP threshold for NMB calculation
      * @returns {Object} DSA results for tornado diagram
      */
-    run(project, outcomeMetric = 'icer', wtp = 30000) {
+    run(project, outcomeMetric = 'icer', wtp) {
         const results = [];
         const parameters = project.parameters || {};
+        const settings = project.settings || {};
+        const resolvedWtp = Number.isFinite(wtp) ? wtp : resolvePrimaryWtp(settings);
 
         // Get baseline values
         const baseline = this.markovEngine.runAllStrategies(project);
-        const baselineIcer = this.getOutcome(baseline, outcomeMetric, wtp);
+        const baselineIcer = this.getOutcome(baseline, outcomeMetric, resolvedWtp);
 
         // Analyze each parameter
         for (const [paramId, param] of Object.entries(parameters)) {
@@ -945,13 +1053,13 @@ class DSAEngine {
             const lowProject = JSON.parse(JSON.stringify(project));
             lowProject.parameters[paramId].value = lowValue;
             const lowRun = this.markovEngine.runAllStrategies(lowProject);
-            const lowOutcome = this.getOutcome(lowRun, outcomeMetric, wtp);
+            const lowOutcome = this.getOutcome(lowRun, outcomeMetric, resolvedWtp);
 
             // Run high scenario
             const highProject = JSON.parse(JSON.stringify(project));
             highProject.parameters[paramId].value = highValue;
             const highRun = this.markovEngine.runAllStrategies(highProject);
-            const highOutcome = this.getOutcome(highRun, outcomeMetric, wtp);
+            const highOutcome = this.getOutcome(highRun, outcomeMetric, resolvedWtp);
 
             results.push({
                 parameter: paramId,
@@ -974,7 +1082,7 @@ class DSAEngine {
         return {
             baseline: baselineIcer,
             metric: outcomeMetric,
-            wtp: wtp,
+            wtp: resolvedWtp,
             parameters: results,
             topParameters: results.slice(0, 10)  // Top 10 most influential
         };
@@ -1063,9 +1171,11 @@ class DSAEngine {
     /**
      * Run two-way sensitivity analysis
      */
-    runTwoWay(project, param1Id, param2Id, steps = 10, outcomeMetric = 'icer', wtp = 30000) {
+    runTwoWay(project, param1Id, param2Id, steps = 10, outcomeMetric = 'icer', wtp) {
         const param1 = project.parameters[param1Id];
         const param2 = project.parameters[param2Id];
+        const settings = project.settings || {};
+        const resolvedWtp = Number.isFinite(wtp) ? wtp : resolvePrimaryWtp(settings);
 
         if (!param1 || !param2) {
             throw new Error('Invalid parameter IDs');
@@ -1094,7 +1204,7 @@ class DSAEngine {
                 modProject.parameters[param2Id].value = values2[j];
 
                 const run = this.markovEngine.runAllStrategies(modProject);
-                const outcome = this.getOutcome(run, outcomeMetric, wtp);
+                const outcome = this.getOutcome(run, outcomeMetric, resolvedWtp);
                 row.push(outcome);
             }
             results.push(row);
@@ -1104,7 +1214,8 @@ class DSAEngine {
             parameter1: { id: param1Id, label: param1.label, values: values1 },
             parameter2: { id: param2Id, label: param2.label, values: values2 },
             outcomes: results,
-            metric: outcomeMetric
+            metric: outcomeMetric,
+            wtp: resolvedWtp
         };
     }
 }
@@ -1126,7 +1237,9 @@ class EVPICalculator {
      * @param {number} timeHorizon - Technology relevance horizon (years)
      * @returns {Object} EVPI results
      */
-    calculate(psaResults, wtp = 30000, population = 10000, timeHorizon = 10) {
+    calculate(psaResults, wtp, population = 10000, timeHorizon = 10) {
+        const settings = psaResults?.settings_snapshot || {};
+        const resolvedWtp = Number.isFinite(wtp) ? wtp : (psaResults?.primary_wtp || resolvePrimaryWtp(settings));
         const { scatter } = psaResults;
         const incCosts = scatter.incremental_costs;
         const incQalys = scatter.incremental_qalys;
@@ -1135,7 +1248,7 @@ class EVPICalculator {
         // Calculate NMB for each iteration
         const nmbs = [];
         for (let i = 0; i < n; i++) {
-            nmbs.push(incQalys[i] * wtp - incCosts[i]);
+            nmbs.push(incQalys[i] * resolvedWtp - incCosts[i]);
         }
 
         // Expected NMB with current information
@@ -1169,7 +1282,7 @@ class EVPICalculator {
         const probWrongDecision = wrongDecisions / n;
 
         return {
-            wtp: wtp,
+            wtp: resolvedWtp,
             expectedNMB: expectedNMB,
             currentDecision: currentDecision,
             perfectNMB: perfectNMB,
@@ -1178,16 +1291,34 @@ class EVPICalculator {
             timeHorizon: timeHorizon,
             populationEVPI: populationEVPI,
             probWrongDecision: probWrongDecision,
-            interpretation: this.interpret(evpiPerPatient, populationEVPI, probWrongDecision)
+            interpretation: this.interpret(evpiPerPatient, populationEVPI, probWrongDecision, settings)
         };
     }
 
     /**
      * Calculate EVPI across WTP range for EVPI curve
      */
-    calculateCurve(psaResults, wtpMin = 0, wtpMax = 100000, wtpStep = 5000, population = 10000, timeHorizon = 10) {
+    calculateCurve(psaResults, wtpMin, wtpMax, wtpStep, population = 10000, timeHorizon = 10) {
+        const settings = psaResults?.settings_snapshot || {};
+        const thresholds = resolveWtpThresholds(settings);
+        const maxThreshold = Math.max(...thresholds);
+        const derivedMax = Math.max(maxThreshold, Math.round(maxThreshold * 1.5));
+
+        const min = Number.isFinite(wtpMin) ? wtpMin : 0;
+        const max = Number.isFinite(wtpMax) ? wtpMax : derivedMax;
+        const step = Number.isFinite(wtpStep) ? wtpStep : Math.max(1000, Math.round(max / 20));
+
         const curve = [];
-        for (let wtp = wtpMin; wtp <= wtpMax; wtp += wtpStep) {
+        const wtpPoints = [];
+        for (let wtp = min; wtp <= max; wtp += step) {
+            wtpPoints.push(wtp);
+        }
+        for (const threshold of thresholds) {
+            wtpPoints.push(threshold);
+        }
+        const uniquePoints = Array.from(new Set(wtpPoints)).sort((a, b) => a - b);
+
+        for (const wtp of uniquePoints) {
             const result = this.calculate(psaResults, wtp, population, timeHorizon);
             curve.push({
                 wtp: wtp,
@@ -1201,7 +1332,7 @@ class EVPICalculator {
     /**
      * Generate interpretation text
      */
-    interpret(evpiPerPatient, populationEVPI, probWrongDecision) {
+    interpret(evpiPerPatient, populationEVPI, probWrongDecision, settings = {}) {
         const interpretations = [];
 
         if (evpiPerPatient < 100) {
@@ -1213,9 +1344,11 @@ class EVPICalculator {
         }
 
         if (populationEVPI > 10000000) {
-            interpretations.push(`Population EVPI of £${(populationEVPI/1000000).toFixed(1)}M suggests substantial research investment may be justified.`);
+            const popMillions = formatCurrency(populationEVPI / 1000000, settings, { maximumFractionDigits: 1 });
+            interpretations.push(`Population EVPI of ${popMillions}M suggests substantial research investment may be justified.`);
         } else if (populationEVPI > 1000000) {
-            interpretations.push(`Population EVPI of £${(populationEVPI/1000000).toFixed(1)}M suggests moderate research investment may be worthwhile.`);
+            const popMillions = formatCurrency(populationEVPI / 1000000, settings, { maximumFractionDigits: 1 });
+            interpretations.push(`Population EVPI of ${popMillions}M suggests moderate research investment may be worthwhile.`);
         }
 
         if (probWrongDecision > 0.4) {
@@ -1244,9 +1377,10 @@ class ConvergenceDiagnostics {
     /**
      * Record diagnostic data point
      */
-    record(iteration, incCosts, incQalys, wtp = 30000) {
+    record(iteration, incCosts, incQalys, wtp) {
         const n = incCosts.length;
         if (n === 0) return;
+        const resolvedWtp = Number.isFinite(wtp) ? wtp : resolvePrimaryWtp({});
 
         const meanCost = incCosts.reduce((a, b) => a + b, 0) / n;
         const meanQaly = incQalys.reduce((a, b) => a + b, 0) / n;
@@ -1254,7 +1388,7 @@ class ConvergenceDiagnostics {
 
         let ceCount = 0;
         for (let i = 0; i < n; i++) {
-            if (incQalys[i] * wtp - incCosts[i] >= 0) ceCount++;
+            if (incQalys[i] * resolvedWtp - incCosts[i] >= 0) ceCount++;
         }
         const probCE = ceCount / n;
 

@@ -13,7 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-def test_beginner_mode():
+def run_beginner_mode_checks():
     options = EdgeOptions()
     options.add_argument('--headless=new')
     options.add_argument('--disable-gpu')
@@ -166,16 +166,20 @@ def test_beginner_mode():
 
         print(f"\nTotal: {passed}/{total} tests passed")
 
-        if passed == total:
+        success = passed == total
+        if success:
             print("\nAll beginner mode features working correctly!")
-            return True
         else:
             print("\nSome features need attention.")
-            return False
+        return success
 
     finally:
         driver.quit()
 
+def test_beginner_mode():
+    assert run_beginner_mode_checks()
+
+
 if __name__ == '__main__':
-    success = test_beginner_mode()
+    success = run_beginner_mode_checks()
     sys.exit(0 if success else 1)

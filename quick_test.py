@@ -7,6 +7,8 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 
 options = Options()
@@ -18,13 +20,23 @@ options.add_argument("--no-sandbox")
 
 driver = webdriver.Chrome(options=options)
 
+def wait_for_loading(timeout=10):
+    try:
+        WebDriverWait(driver, timeout).until(
+            EC.invisibility_of_element_located((By.ID, "loading-overlay"))
+        )
+    except Exception:
+        pass
+
 try:
     driver.get("file:///C:/Users/user/Downloads/HTA-oman/index.html")
     time.sleep(2)
+    wait_for_loading()
 
     # Click demo
     driver.execute_script("document.getElementById('btn-demo').click()")
-    time.sleep(3)
+    time.sleep(1)
+    wait_for_loading(timeout=15)
 
     print("=== Testing PSA ===")
     # Navigate to PSA
@@ -38,7 +50,8 @@ try:
 
     # Click PSA button
     driver.execute_script("document.getElementById('btn-run-psa-full').click()")
-    time.sleep(3)
+    time.sleep(1)
+    wait_for_loading(timeout=30)
 
     # Check CE plane chart
     chart_exists = driver.execute_script("""

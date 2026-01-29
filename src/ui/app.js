@@ -3,6 +3,89 @@
  * Reviewer Mode UI Controller
  */
 
+const OmanGuidance = (typeof globalThis !== 'undefined' && globalThis.OmanHTAGuidance)
+    ? globalThis.OmanHTAGuidance
+    : null;
+
+var guidanceDefaults = OmanGuidance?.defaults || {
+    discount_rate_costs: 0.03,
+    discount_rate_qalys: 0.03,
+    currency: 'OMR',
+    perspective: 'healthcare_system',
+    bia_horizon_years: 4,
+    bia_discount_rate: 0,
+    wtp_multipliers: [1, 2, 3],
+    placeholder_gdp_per_capita_omr: 8100,
+    gdp_per_capita_year: 2023,
+    gdp_per_capita_source: 'GCC Statistical Centre',
+    gdp_per_capita_confirmed: false
+};
+
+function normalizeSettings(settings) {
+    if (OmanGuidance?.normalizeSettings) {
+        return OmanGuidance.normalizeSettings(settings);
+    }
+    const s = settings || {};
+    return {
+        ...s,
+        discount_rate_costs: s.discount_rate_costs ?? guidanceDefaults.discount_rate_costs,
+        discount_rate_qalys: s.discount_rate_qalys ?? guidanceDefaults.discount_rate_qalys,
+        currency: s.currency || guidanceDefaults.currency,
+        perspective: s.perspective || guidanceDefaults.perspective,
+        bia_horizon_years: s.bia_horizon_years ?? guidanceDefaults.bia_horizon_years,
+        bia_discount_rate: s.bia_discount_rate ?? guidanceDefaults.bia_discount_rate,
+        gdp_per_capita_omr: s.gdp_per_capita_omr,
+        gdp_per_capita_year: s.gdp_per_capita_year ?? guidanceDefaults.gdp_per_capita_year,
+        gdp_per_capita_source: s.gdp_per_capita_source || guidanceDefaults.gdp_per_capita_source,
+        gdp_per_capita_confirmed: Boolean(s.gdp_per_capita_confirmed),
+        wtp_thresholds: s.wtp_thresholds,
+        wtp_multipliers: Array.isArray(s.wtp_multipliers) && s.wtp_multipliers.length
+            ? s.wtp_multipliers
+            : guidanceDefaults.wtp_multipliers
+    };
+}
+
+function resolveWtpThresholds(settings) {
+    if (OmanGuidance?.resolveWtpThresholds) {
+        return OmanGuidance.resolveWtpThresholds(settings).thresholds;
+    }
+    const explicit = Array.isArray(settings?.wtp_thresholds) ? settings.wtp_thresholds : null;
+    if (explicit && explicit.length) return explicit;
+    const base = settings?.gdp_per_capita_omr || guidanceDefaults.placeholder_gdp_per_capita_omr;
+    const multipliers = Array.isArray(settings?.wtp_multipliers) && settings.wtp_multipliers.length
+        ? settings.wtp_multipliers
+        : guidanceDefaults.wtp_multipliers;
+    return multipliers.map((m) => base * m);
+}
+
+function resolvePrimaryWtp(settings) {
+    const thresholds = resolveWtpThresholds(settings);
+    return thresholds[0];
+}
+
+function currencyCode(settings) {
+    return settings?.currency || guidanceDefaults.currency;
+}
+
+function formatCurrencyValue(value, settings, digits = 0) {
+    if (!Number.isFinite(value)) return String(value ?? '-');
+    if (OmanGuidance?.formatCurrency) {
+        return OmanGuidance.formatCurrency(value, settings, { maximumFractionDigits: digits });
+    }
+    const code = currencyCode(settings);
+    return `${code} ${value.toLocaleString('en-US', { maximumFractionDigits: digits })}`;
+}
+
+function formatWtpLabel(wtp, settings) {
+    const code = currencyCode(settings);
+    const n = Number(wtp);
+    if (!Number.isFinite(n)) return `${code} -`;
+    if (Math.abs(n) >= 1000) {
+        return `${code} ${(n / 1000).toFixed(0)}k`;
+    }
+    return `${code} ${n.toLocaleString('en-US')}`;
+}
+
 class HTAApp {
     constructor() {
         this.project = null;
@@ -11,10 +94,13 @@ class HTAApp {
         this.dsaResults = null;
         this.evpiResults = null;
         this.validationResults = null;
+        this.proofResults = null;
+        this.biaResults = null;
         this.currentSection = 'summary';
         this.charts = {};
 
         this.validator = new HTAValidator();
+        this.proofEngine = typeof ProofCarrying !== 'undefined' ? ProofCarrying : null;
 
         // Engine registration
         this.engines = {
@@ -30,6 +116,7 @@ class HTAApp {
         this.psaEngine = new PSAEngine();
         this.dsaEngine = typeof DSAEngine !== 'undefined' ? new DSAEngine() : null;
         this.evpiCalculator = typeof EVPICalculator !== 'undefined' ? new EVPICalculator() : null;
+        this.biaCalculator = typeof BudgetImpactCalculator !== 'undefined' ? new BudgetImpactCalculator() : null;
         this.auditLogger = typeof getAuditLogger !== 'undefined' ? getAuditLogger() : null;
 
         this.init();
@@ -40,6 +127,316 @@ class HTAApp {
         this.setupNavigation();
         this.setupButtons();
         this.setupTabs();
+        this.setupSubmissionMetadata();
+    }
+
+    getGuidanceSettings() {
+        return normalizeSettings(this.project?.settings || {});
+    }
+
+    getPrimaryWtp() {
+        return resolvePrimaryWtp(this.getGuidanceSettings());
+    }
+
+    getWtpThresholds() {
+        return resolveWtpThresholds(this.getGuidanceSettings());
+    }
+
+    formatCurrency(value, digits = 0) {
+        return formatCurrencyValue(value, this.getGuidanceSettings(), digits);
+    }
+
+    updateProofResults() {
+        if (!this.proofEngine || !this.results) {
+            this.proofResults = null;
+            return;
+        }
+        this.proofResults = this.proofEngine.verifyDeterministicResults(
+            this.results,
+            this.project,
+            this.getGuidanceSettings()
+        );
+    }
+
+    applyGuidanceToUI() {
+        if (!this.project) return;
+        const settings = this.getGuidanceSettings();
+        this.project.settings = { ...this.project.settings, ...settings };
+
+        const primaryWtp = this.getPrimaryWtp();
+        for (const id of ['evpi-wtp', 'evppi-wtp']) {
+            const input = document.getElementById(id);
+            if (input && (!input.value || Number(input.value) === 30000)) {
+                input.value = String(Math.round(primaryWtp));
+            }
+        }
+
+        const desDiscount = document.getElementById('des-discount');
+        if (desDiscount && (!desDiscount.value || Number(desDiscount.value) === 0.035)) {
+            desDiscount.value = String(settings.discount_rate_costs);
+        }
+
+        const biaYears = document.getElementById('bia-years');
+        if (biaYears && (!biaYears.value || Number(biaYears.value) === 4)) {
+            biaYears.value = String(settings.bia_horizon_years ?? 4);
+        }
+        const biaDiscount = document.getElementById('bia-discount');
+        if (biaDiscount && (!biaDiscount.value || Number(biaDiscount.value) === 0)) {
+            biaDiscount.value = String((settings.bia_discount_rate ?? 0) * 100);
+        }
+    }
+
+    setupSubmissionMetadata() {
+        const bind = (id, handler) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('change', handler);
+        };
+
+        bind('gdp-per-capita', () => {
+            if (!this.project) return;
+            const value = Number(document.getElementById('gdp-per-capita').value || 0);
+            this.updateProjectSettings({ gdp_per_capita_omr: value });
+        });
+
+        bind('gdp-year', () => {
+            if (!this.project) return;
+            const value = Number(document.getElementById('gdp-year').value || 0);
+            this.updateProjectSettings({ gdp_per_capita_year: value });
+        });
+
+        bind('gdp-source', () => {
+            if (!this.project) return;
+            const value = document.getElementById('gdp-source').value || '';
+            this.updateProjectSettings({ gdp_per_capita_source: value });
+        });
+
+        bind('gdp-confirm', () => {
+            if (!this.project) return;
+            const value = document.getElementById('gdp-confirm').checked;
+            this.updateProjectSettings({ gdp_per_capita_confirmed: value });
+        });
+
+        bind('bia-horizon', () => {
+            if (!this.project) return;
+            const value = Number(document.getElementById('bia-horizon').value || 0);
+            this.updateProjectSettings({ bia_horizon_years: value });
+            const biaYears = document.getElementById('bia-years');
+            if (biaYears) biaYears.value = value;
+        });
+
+        bind('bia-discount-setting', () => {
+            if (!this.project) return;
+            const value = Number(document.getElementById('bia-discount-setting').value || 0) / 100;
+            this.updateProjectSettings({ bia_discount_rate: value });
+            const biaDiscount = document.getElementById('bia-discount');
+            if (biaDiscount) biaDiscount.value = (value * 100).toFixed(1);
+        });
+
+        bind('meta-coi', () => {
+            if (!this.project) return;
+            const value = document.getElementById('meta-coi').value || '';
+            this.updateProjectMetadata({ conflicts_of_interest: value });
+        });
+
+        bind('meta-public-dossier', () => {
+            if (!this.project) return;
+            const value = document.getElementById('meta-public-dossier').value;
+            const available = value === 'yes';
+            this.updateProjectMetadata({ public_dossier_available: available });
+        });
+
+        bind('meta-public-dossier-url', () => {
+            if (!this.project) return;
+            const value = document.getElementById('meta-public-dossier-url').value || '';
+            this.updateProjectMetadata({ public_dossier_url: value });
+        });
+    }
+
+    updateProjectSettings(patch) {
+        if (!this.project) return;
+        this.project.settings = { ...this.project.settings, ...patch };
+        if ('bia_horizon_years' in patch || 'bia_discount_rate' in patch) {
+            this.biaResults = null;
+            const resultsEl = document.getElementById('bia-results');
+            if (resultsEl) resultsEl.style.display = 'none';
+        }
+        this.applyGuidanceToUI();
+        this.populateSummary();
+        this.validationResults = this.validator._validateProjectObject(this.project);
+        this.populateValidation();
+    }
+
+    updateProjectMetadata(patch) {
+        if (!this.project) return;
+        this.project.metadata = { ...(this.project.metadata || {}), ...patch };
+        this.populateSummary();
+        this.validationResults = this.validator._validateProjectObject(this.project);
+        this.populateValidation();
+    }
+
+    getSubmissionIssues() {
+        const issues = [];
+        const settings = this.getGuidanceSettings();
+        const meta = this.project?.metadata || {};
+
+        if (!Number.isFinite(settings.gdp_per_capita_omr) || settings.gdp_per_capita_omr <= 0) {
+            issues.push({ severity: 'error', message: 'GDP per capita is missing or invalid.' });
+        }
+        if (!settings.gdp_per_capita_confirmed) {
+            issues.push({ severity: 'error', message: 'GDP per capita has not been confirmed for submission.' });
+        }
+        if (!settings.gdp_per_capita_year) {
+            issues.push({ severity: 'warning', message: 'GDP per capita year is missing.' });
+        }
+        if (!settings.gdp_per_capita_source) {
+            issues.push({ severity: 'warning', message: 'GDP per capita source is missing.' });
+        }
+
+        const coi = (meta.conflicts_of_interest || meta.coi_statement || '').trim();
+        if (!coi) {
+            issues.push({ severity: 'error', message: 'Conflict of interest statement is required.' });
+        }
+
+        if (meta.public_dossier_available !== true) {
+            issues.push({ severity: 'error', message: 'Public dossier availability must be confirmed as Yes.' });
+        }
+
+        if (meta.public_dossier_available === true && !(meta.public_dossier_url || '').trim()) {
+            issues.push({ severity: 'error', message: 'Public dossier URL is required when availability is Yes.' });
+        }
+
+        if (!this.biaResults) {
+            issues.push({ severity: 'error', message: 'Budget impact analysis has not been calculated.' });
+        } else if (!Number.isFinite(this.biaResults.totalCost) || this.biaResults.totalCost === 0) {
+            issues.push({ severity: 'warning', message: 'Budget impact total cost is zero or invalid. Verify inputs.' });
+        }
+
+        if (Number.isFinite(settings.bia_horizon_years) && settings.bia_horizon_years !== 4) {
+            issues.push({ severity: 'warning', message: 'Budget impact horizon differs from 4 years.' });
+        }
+        if (Number.isFinite(settings.bia_discount_rate) && settings.bia_discount_rate !== 0) {
+            issues.push({ severity: 'warning', message: 'Budget impact discount rate differs from 0%.' });
+        }
+
+        return issues;
+    }
+
+    populateSubmissionReadiness() {
+        const statusEl = document.getElementById('submission-status');
+        const issuesEl = document.getElementById('submission-issues');
+        if (!statusEl || !issuesEl) return;
+
+        if (!this.project) {
+            statusEl.className = 'validation-status warn';
+            statusEl.innerHTML = '<span>ℹ️</span> Load a model to assess readiness.';
+            issuesEl.innerHTML = '';
+            return;
+        }
+
+        const issues = this.getSubmissionIssues();
+        const hasErrors = issues.some((i) => i.severity === 'error');
+        const statusClass = hasErrors ? 'fail' : (issues.length ? 'warn' : 'pass');
+        statusEl.className = `validation-status ${statusClass}`;
+        statusEl.innerHTML = `<span>${hasErrors ? '❌' : (issues.length ? '⚠️' : '✅')}</span> ${hasErrors ? 'Not submission-ready' : (issues.length ? 'Ready with warnings' : 'Submission-ready')}`;
+
+        if (!issues.length) {
+            issuesEl.innerHTML = '<p style="color: var(--text-muted);">All submission requirements met.</p>';
+            return;
+        }
+
+        issuesEl.innerHTML = issues.map((issue) => {
+            const severity = issue.severity === 'error' ? 'error' : 'warning';
+            return `
+                <div class="validation-issue ${severity}">
+                    <strong>${issue.severity.toUpperCase()}</strong> - ${issue.message}
+                </div>
+            `;
+        }).join('');
+    }
+
+    updateBiaDefaultsFromResults() {
+        if (!this.results) return;
+        const input = document.getElementById('bia-inc-cost');
+        if (!input) return;
+
+        const comparison = this.results.incremental?.comparisons?.[0];
+        if (!comparison) return;
+
+        const incCost = comparison.incremental_costs;
+        if (Number.isFinite(incCost) && (!input.value || Number(input.value) === 0)) {
+            input.value = String(Math.round(incCost));
+        }
+    }
+
+    calculateBudgetImpact() {
+        if (!this.biaCalculator) {
+            this.showToast('Budget impact calculator not available', 'warning');
+            return;
+        }
+
+        try {
+            const settings = this.getGuidanceSettings();
+            const horizon = Number(document.getElementById('bia-years')?.value || settings.bia_horizon_years || 4);
+            const discountRate = Number(document.getElementById('bia-discount')?.value || 0) / 100;
+
+            const uptakeRates = [
+                Number(document.getElementById('bia-uptake-1')?.value || 0) / 100,
+                Number(document.getElementById('bia-uptake-2')?.value || 0) / 100,
+                Number(document.getElementById('bia-uptake-3')?.value || 0) / 100,
+                Number(document.getElementById('bia-uptake-4')?.value || 0) / 100
+            ];
+
+            this.biaResults = this.biaCalculator.calculate({
+                population: Number(document.getElementById('bia-population')?.value || 0),
+                population_growth_rate: Number(document.getElementById('bia-growth')?.value || 0) / 100,
+                years: horizon,
+                uptake_rates: uptakeRates,
+                incremental_cost_per_patient: Number(document.getElementById('bia-inc-cost')?.value || 0),
+                fixed_cost: Number(document.getElementById('bia-fixed-cost')?.value || 0),
+                discount_rate: discountRate
+            });
+
+            this.displayBudgetImpactResults();
+            this.showToast('Budget impact calculated', 'success');
+
+            if (this.auditLogger) {
+                this.auditLogger.info('bia', 'Budget impact calculated', {
+                    years: this.biaResults.years,
+                    totalCost: this.biaResults.totalCost
+                });
+            }
+        } catch (err) {
+            this.showToast(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    displayBudgetImpactResults() {
+        const r = this.biaResults;
+        if (!r) return;
+        const tbody = document.getElementById('bia-results-body');
+        const resultsEl = document.getElementById('bia-results');
+        if (!tbody || !resultsEl) return;
+
+        const settings = this.getGuidanceSettings();
+        tbody.innerHTML = r.rows.map((row) => `
+            <tr>
+                <td>${row.year}</td>
+                <td>${Math.round(row.population).toLocaleString('en-US')}</td>
+                <td>${(row.uptake * 100).toFixed(1)}%</td>
+                <td>${Math.round(row.treated).toLocaleString('en-US')}</td>
+                <td>${this.formatCurrency(row.annualCost, 0)}</td>
+                <td>${this.formatCurrency(row.cumulativeCost, 0)}</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('bia-total-impact').textContent = this.formatCurrency(r.totalCost, 0);
+        document.getElementById('bia-year1-impact').textContent = r.rows[0]
+            ? this.formatCurrency(r.rows[0].annualCost, 0)
+            : '-';
+
+        resultsEl.style.display = 'block';
+        this.populateValidation();
     }
 
     // ============ DROP ZONE & FILE HANDLING ============
@@ -103,6 +500,8 @@ class HTAApp {
 
         if (this.validationResults.project) {
             this.project = this.validationResults.project;
+            this.proofResults = null;
+            this.biaResults = null;
             this.hideLoading();
             this.showMainContent();
             this.populateUI();
@@ -124,7 +523,12 @@ class HTAApp {
         this.showLoading('Validating model...');
 
         this.project = project;
-        this.validationResults = this.validator._validateProjectObject(project);
+        this.proofResults = null;
+        this.biaResults = null;
+        const normalizedSettings = normalizeSettings(project?.settings || {});
+        this.project.settings = { ...project.settings, ...normalizedSettings };
+        this.applyGuidanceToUI();
+        this.validationResults = this.validator._validateProjectObject(this.project);
 
         this.hideLoading();
         this.showMainContent();
@@ -150,17 +554,28 @@ class HTAApp {
                 name: "Oncology Drug A vs Standard Care",
                 description: "Demonstration Markov cohort model for oncology",
                 author: "HTA Standard Demo",
+                conflicts_of_interest: "",
+                public_dossier_available: false,
+                public_dossier_url: "",
                 created: new Date().toISOString(),
                 version: "1.0.0"
             },
             settings: {
                 time_horizon: 40,
                 cycle_length: 1,
-                discount_rate_costs: 0.035,
-                discount_rate_qalys: 0.035,
+                discount_rate_costs: guidanceDefaults.discount_rate_costs,
+                discount_rate_qalys: guidanceDefaults.discount_rate_qalys,
                 half_cycle_correction: "trapezoidal",
-                currency: "GBP",
-                starting_age: 55
+                currency: guidanceDefaults.currency,
+                perspective: guidanceDefaults.perspective,
+                bia_horizon_years: guidanceDefaults.bia_horizon_years,
+                bia_discount_rate: guidanceDefaults.bia_discount_rate,
+                starting_age: 55,
+                gdp_per_capita_omr: guidanceDefaults.placeholder_gdp_per_capita_omr,
+                gdp_per_capita_year: guidanceDefaults.gdp_per_capita_year,
+                gdp_per_capita_source: guidanceDefaults.gdp_per_capita_source,
+                gdp_per_capita_confirmed: guidanceDefaults.gdp_per_capita_confirmed,
+                wtp_multipliers: guidanceDefaults.wtp_multipliers
             },
             model: {
                 type: "markov_cohort"
@@ -189,19 +604,19 @@ class HTAApp {
                 c_drugA: {
                     value: 5000,
                     label: "Annual cost Drug A",
-                    unit: "GBP",
+                    unit: guidanceDefaults.currency,
                     distribution: { type: "gamma", mean: 5000, se: 500 }
                 },
                 c_soc: {
                     value: 1000,
                     label: "Annual cost SoC",
-                    unit: "GBP",
+                    unit: guidanceDefaults.currency,
                     distribution: { type: "gamma", mean: 1000, se: 100 }
                 },
                 c_progressed: {
                     value: 8000,
                     label: "Annual cost progressed disease",
-                    unit: "GBP",
+                    unit: guidanceDefaults.currency,
                     distribution: { type: "gamma", mean: 8000, se: 800 }
                 },
                 u_stable: {
@@ -370,6 +785,12 @@ class HTAApp {
             evpiBtn.addEventListener('click', () => this.calculateEVPI());
         }
 
+        // Budget impact button
+        const biaBtn = document.getElementById('btn-run-bia');
+        if (biaBtn) {
+            biaBtn.addEventListener('click', () => this.calculateBudgetImpact());
+        }
+
         // Export buttons
         document.getElementById('btn-export-json').addEventListener('click', () => this.exportJSON());
         document.getElementById('btn-export-csv').addEventListener('click', () => this.exportCSV());
@@ -433,6 +854,47 @@ class HTAApp {
         document.getElementById('model-created').textContent = meta.created ?
             new Date(meta.created).toLocaleDateString() : '-';
 
+        const gdpInput = document.getElementById('gdp-per-capita');
+        if (gdpInput) gdpInput.value = settings.gdp_per_capita_omr ?? guidanceDefaults.placeholder_gdp_per_capita_omr;
+
+        const gdpYear = document.getElementById('gdp-year');
+        if (gdpYear) gdpYear.value = settings.gdp_per_capita_year ?? guidanceDefaults.gdp_per_capita_year;
+
+        const gdpSource = document.getElementById('gdp-source');
+        if (gdpSource) gdpSource.value = settings.gdp_per_capita_source ?? guidanceDefaults.gdp_per_capita_source;
+
+        const gdpConfirm = document.getElementById('gdp-confirm');
+        if (gdpConfirm) gdpConfirm.checked = Boolean(settings.gdp_per_capita_confirmed);
+
+        const biaHorizon = document.getElementById('bia-horizon');
+        if (biaHorizon) biaHorizon.value = settings.bia_horizon_years ?? guidanceDefaults.bia_horizon_years;
+
+        const biaDiscountSetting = document.getElementById('bia-discount-setting');
+        if (biaDiscountSetting) biaDiscountSetting.value = (settings.bia_discount_rate ?? guidanceDefaults.bia_discount_rate) * 100;
+
+        const coiInput = document.getElementById('meta-coi');
+        if (coiInput) coiInput.value = meta.conflicts_of_interest || meta.coi_statement || '';
+
+        const dossierSelect = document.getElementById('meta-public-dossier');
+        if (dossierSelect) {
+            if (meta.public_dossier_available === true) {
+                dossierSelect.value = 'yes';
+            } else if (meta.public_dossier_available === false) {
+                dossierSelect.value = 'no';
+            } else {
+                dossierSelect.value = 'unspecified';
+            }
+        }
+
+        const dossierUrl = document.getElementById('meta-public-dossier-url');
+        if (dossierUrl) dossierUrl.value = meta.public_dossier_url || '';
+
+        const biaYears = document.getElementById('bia-years');
+        if (biaYears) biaYears.value = settings.bia_horizon_years ?? guidanceDefaults.bia_horizon_years;
+
+        const biaDiscount = document.getElementById('bia-discount');
+        if (biaDiscount) biaDiscount.value = ((settings.bia_discount_rate ?? guidanceDefaults.bia_discount_rate) * 100).toFixed(1);
+
         this.renderStateDiagram();
     }
 
@@ -492,6 +954,41 @@ class HTAApp {
             v.errors.length > 0 ? v.errors.length : (v.warnings.length > 0 ? v.warnings.length : '✓');
         document.getElementById('validation-badge').className =
             `nav-badge ${v.errors.length > 0 ? 'error' : (v.warnings.length > 0 ? 'warning' : 'success')}`;
+
+        this.populateProofVerification();
+        this.populateSubmissionReadiness();
+    }
+
+    populateProofVerification() {
+        const statusEl = document.getElementById('proof-status');
+        const issuesEl = document.getElementById('proof-issues');
+        if (!statusEl || !issuesEl) return;
+
+        if (!this.proofResults) {
+            statusEl.className = 'validation-status warn';
+            statusEl.innerHTML = '<span>ℹ️</span> No proof checks yet (run a model).';
+            issuesEl.innerHTML = '';
+            return;
+        }
+
+        const { summary, issues, verified } = this.proofResults;
+        const statusClass = verified ? 'pass' : (summary.failed > 0 ? 'fail' : 'warn');
+        statusEl.className = `validation-status ${statusClass}`;
+        statusEl.innerHTML = `<span>${verified ? '✅' : '⚠️'}</span> Proof checks: ${summary.passed} passed, ${summary.failed} failed, ${summary.warnings} warnings`;
+
+        if (!issues.length) {
+            issuesEl.innerHTML = '<p style="color: var(--text-muted);">No proof issues detected.</p>';
+            return;
+        }
+
+        issuesEl.innerHTML = issues.map((issue) => {
+            const severity = issue.severity === 'error' ? 'error' : 'warning';
+            return `
+                <div class="validation-issue ${severity}">
+                    <strong>${issue.severity.toUpperCase()}</strong> - ${issue.message}
+                </div>
+            `;
+        }).join('');
     }
 
     renderIssue(issue, severity) {
@@ -620,6 +1117,9 @@ class HTAApp {
         const r = this.results;
         if (!r) return;
 
+        this.updateProofResults();
+        this.updateBiaDefaultsFromResults();
+
         // Get first non-comparator strategy and comparator
         const strategies = this.project.strategies || {};
         let intId = null, compId = null;
@@ -634,10 +1134,11 @@ class HTAApp {
 
         const intResults = r.strategies[intId];
         const compResults = r.strategies[compId];
+        const settings = this.getGuidanceSettings();
 
         // Display base case results
-        document.getElementById('result-costs-int').textContent = `£${Math.round(intResults?.total_costs || 0).toLocaleString()}`;
-        document.getElementById('result-costs-comp').textContent = `£${Math.round(compResults?.total_costs || 0).toLocaleString()}`;
+        document.getElementById('result-costs-int').textContent = this.formatCurrency(intResults?.total_costs || 0, 0);
+        document.getElementById('result-costs-comp').textContent = this.formatCurrency(compResults?.total_costs || 0, 0);
         document.getElementById('result-qalys-int').textContent = (intResults?.total_qalys || 0).toFixed(3);
         document.getElementById('result-qalys-comp').textContent = (compResults?.total_qalys || 0).toFixed(3);
 
@@ -645,7 +1146,7 @@ class HTAApp {
         if (r.incremental && r.incremental.comparisons.length > 0) {
             const comp = r.incremental.comparisons[0];
             if (typeof comp.icer === 'number') {
-                document.getElementById('result-icer').textContent = `£${Math.round(comp.icer).toLocaleString()}`;
+                document.getElementById('result-icer').textContent = this.formatCurrency(comp.icer, 0);
             } else {
                 document.getElementById('result-icer').textContent = comp.dominance || comp.icer;
             }
@@ -653,6 +1154,8 @@ class HTAApp {
 
         // Render trace chart
         this.renderTraceChart(intResults);
+
+        this.populateValidation();
 
         // Navigate to results
         this.navigateToSection('deterministic');
@@ -766,16 +1269,24 @@ class HTAApp {
         const r = this.psaResults;
         if (!r) return;
 
-        const s = r.summary;
+        const s = r.summary || {};
+        const settings = this.getGuidanceSettings();
+        const primaryWtp = r.primary_wtp || this.getPrimaryWtp();
+        const primaryProb = s.prob_ce?.[primaryWtp] ?? s.prob_ce_primary ?? s.prob_ce_30k;
+
+        const probLabel = document.getElementById('psa-prob-ce')?.previousElementSibling;
+        if (probLabel && probLabel.classList.contains('summary-card-label')) {
+            probLabel.textContent = `Prob CE @ ${formatWtpLabel(primaryWtp, settings)}`;
+        }
 
         document.getElementById('psa-mean-icer').textContent =
-            s.mean_icer ? `£${Math.round(s.mean_icer).toLocaleString()}` : '-';
+            Number.isFinite(s.mean_icer) ? this.formatCurrency(s.mean_icer, 0) : '-';
         document.getElementById('psa-ci-lower').textContent =
-            s.ci_lower_icer ? `£${Math.round(s.ci_lower_icer).toLocaleString()}` : '-';
+            Number.isFinite(s.ci_lower_icer) ? this.formatCurrency(s.ci_lower_icer, 0) : '-';
         document.getElementById('psa-ci-upper').textContent =
-            s.ci_upper_icer ? `£${Math.round(s.ci_upper_icer).toLocaleString()}` : '-';
+            Number.isFinite(s.ci_upper_icer) ? this.formatCurrency(s.ci_upper_icer, 0) : '-';
         document.getElementById('psa-prob-ce').textContent =
-            s.prob_ce_30k ? `${(s.prob_ce_30k * 100).toFixed(1)}%` : '-';
+            Number.isFinite(primaryProb) ? `${(primaryProb * 100).toFixed(1)}%` : '-';
 
         this.renderCEPlane();
         this.renderCEAC();
@@ -787,6 +1298,9 @@ class HTAApp {
     renderCEPlane() {
         const r = this.psaResults;
         if (!r?.scatter) return;
+        const settings = this.getGuidanceSettings();
+        const primaryWtp = r.primary_wtp || this.getPrimaryWtp();
+        const currency = currencyCode(settings);
 
         const ctx = document.getElementById('ce-plane-chart');
         if (!ctx) return;
@@ -804,11 +1318,11 @@ class HTAApp {
             });
         }
 
-        // WTP line at £30k
+        // WTP line at primary threshold
         const maxQ = Math.max(...r.scatter.incremental_qalys.map(Math.abs)) * 1.2;
         const wtpLine = [
-            { x: -maxQ, y: -maxQ * 30000 },
-            { x: maxQ, y: maxQ * 30000 }
+            { x: -maxQ, y: -maxQ * primaryWtp },
+            { x: maxQ, y: maxQ * primaryWtp }
         ];
 
         this.charts.cePlane = new Chart(ctx, {
@@ -823,7 +1337,7 @@ class HTAApp {
                         pointRadius: 2
                     },
                     {
-                        label: 'WTP £30k',
+                        label: `WTP ${formatWtpLabel(primaryWtp, settings)}`,
                         data: wtpLine,
                         type: 'line',
                         borderColor: '#dc2626',
@@ -841,7 +1355,7 @@ class HTAApp {
                         title: { display: true, text: 'Incremental QALYs' }
                     },
                     y: {
-                        title: { display: true, text: 'Incremental Costs (£)' }
+                        title: { display: true, text: `Incremental Costs (${currency})` }
                     }
                 },
                 plugins: {
@@ -854,6 +1368,8 @@ class HTAApp {
     renderCEAC() {
         const r = this.psaResults;
         if (!r?.ceac) return;
+        const settings = this.getGuidanceSettings();
+        const currency = currencyCode(settings);
 
         const ctx = document.getElementById('ceac-chart');
         if (!ctx) return;
@@ -865,7 +1381,7 @@ class HTAApp {
         this.charts.ceac = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: r.ceac.map(p => `£${(p.wtp / 1000).toFixed(0)}k`),
+                labels: r.ceac.map(p => formatWtpLabel(p.wtp, settings)),
                 datasets: [{
                     label: 'Probability Cost-Effective',
                     data: r.ceac.map(p => p.probability),
@@ -885,7 +1401,7 @@ class HTAApp {
                         title: { display: true, text: 'Probability CE' }
                     },
                     x: {
-                        title: { display: true, text: 'Willingness-to-Pay Threshold' }
+                        title: { display: true, text: `Willingness-to-Pay Threshold (${currency}/QALY)` }
                     }
                 },
                 plugins: {
@@ -908,7 +1424,7 @@ class HTAApp {
         document.getElementById('conv-status').textContent = conv.converged ? 'Converged' : 'Not Converged';
         document.getElementById('conv-status').style.color = conv.converged ? 'var(--success)' : 'var(--error)';
 
-        document.getElementById('conv-cost-se').textContent = conv.costSE ? `£${conv.costSE.toFixed(2)}` : '-';
+        document.getElementById('conv-cost-se').textContent = Number.isFinite(conv.costSE) ? this.formatCurrency(conv.costSE, 2) : '-';
         document.getElementById('conv-qaly-se').textContent = conv.qalySE ? conv.qalySE.toFixed(6) : '-';
 
         const warningEl = document.getElementById('conv-warning');
@@ -1084,11 +1600,17 @@ class HTAApp {
             return;
         }
 
-        const wtp = parseFloat(document.getElementById('evpi-wtp')?.value || '30000');
+        const primaryWtp = this.psaResults?.primary_wtp || this.getPrimaryWtp();
+        const wtpInput = document.getElementById('evpi-wtp');
+        const parsedWtp = wtpInput ? parseFloat(wtpInput.value) : NaN;
+        const wtp = Number.isFinite(parsedWtp) ? parsedWtp : primaryWtp;
         const population = parseInt(document.getElementById('evpi-population')?.value || '50000');
         const years = parseInt(document.getElementById('evpi-years')?.value || '10');
 
         try {
+            if (wtpInput && !Number.isFinite(parsedWtp)) {
+                wtpInput.value = String(Math.round(wtp));
+            }
             this.evpiResults = this.evpiCalculator.calculate(
                 this.psaResults,
                 wtp,
@@ -1115,9 +1637,10 @@ class HTAApp {
 
         document.getElementById('evpi-results').style.display = 'block';
 
-        document.getElementById('evpi-per-patient').textContent = `£${r.evpiPerPatient?.toFixed(2) || '-'}`;
+        document.getElementById('evpi-per-patient').textContent =
+            Number.isFinite(r.evpiPerPatient) ? this.formatCurrency(r.evpiPerPatient, 2) : '-';
         document.getElementById('evpi-population-value').textContent = r.populationEVPI ?
-            `£${(r.populationEVPI / 1e6).toFixed(2)}M` : '-';
+            `${this.formatCurrency(r.populationEVPI / 1e6, 2)}M` : '-';
         document.getElementById('evpi-prob-wrong').textContent = r.probWrongDecision ?
             `${(r.probWrongDecision * 100).toFixed(1)}%` : '-';
         document.getElementById('evpi-optimal').textContent = r.optimalStrategy || '-';
@@ -1139,7 +1662,9 @@ class HTAApp {
             project: this.project,
             results: this.results,
             psa: this.psaResults,
-            validation: this.validationResults
+            validation: this.validationResults,
+            proof: this.proofResults,
+            bia: this.biaResults
         };
 
         this.downloadFile(JSON.stringify(data, null, 2), 'hta-results.json', 'application/json');
@@ -1186,10 +1711,17 @@ class HTAApp {
             return;
         }
 
-        // Generate NICE-style submission report
+        const submissionIssues = this.getSubmissionIssues().filter(i => i.severity === 'error');
+        if (submissionIssues.length > 0) {
+            this.showToast('Submission readiness issues found. Resolve them before exporting.', 'warning');
+            this.navigateToSection('validation');
+            return;
+        }
+
+        // Generate Oman HTA submission report
         const report = this.generateNICEReport();
-        this.downloadFile(report, 'nice-submission-report.txt', 'text/plain');
-        this.showToast('NICE report generated', 'success');
+        this.downloadFile(report, 'oman-hta-report.txt', 'text/plain');
+        this.showToast('Oman HTA report generated', 'success');
     }
 
     generateNICEReport() {
@@ -1198,10 +1730,37 @@ class HTAApp {
         const r = this.results;
         const psa = this.psaResults;
         const evpi = this.evpiResults;
+        const settings = this.getGuidanceSettings();
+        const currency = currencyCode(settings);
+        const wtpThresholds = this.getWtpThresholds();
+        const primaryWtp = this.getPrimaryWtp();
+        const primaryWtpLabel = formatWtpLabel(primaryWtp, settings);
+        const wtpList = wtpThresholds.map((w) => formatWtpLabel(w, settings)).join(', ');
+        const probCEPrimary = psa?.summary
+            ? (psa.summary.prob_ce?.[primaryWtp] ?? psa.summary.prob_ce_primary ?? psa.summary.prob_ce_30k)
+            : null;
+
+        const fmt = (value, digits = 2) => Number.isFinite(value) ? this.formatCurrency(value, digits) : '-';
+        const pct = (value) => Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : '-';
+        const discountCostsPct = ((settings.discount_rate_costs ?? 0) * 100).toFixed(1);
+        const discountQalysPct = ((settings.discount_rate_qalys ?? 0) * 100).toFixed(1);
+        const gdpPerCapita = Number.isFinite(settings.gdp_per_capita_omr)
+            ? `${currency} ${settings.gdp_per_capita_omr.toLocaleString('en-US')}`
+            : 'Not set';
+        const gdpYear = settings.gdp_per_capita_year || guidanceDefaults.gdp_per_capita_year;
+        const gdpSource = settings.gdp_per_capita_source || guidanceDefaults.gdp_per_capita_source;
+        const gdpConfirmed = settings.gdp_per_capita_confirmed ? 'Yes' : 'No';
+        const biaHorizon = Number.isFinite(settings.bia_horizon_years) ? settings.bia_horizon_years : 4;
+        const biaDiscountPct = ((settings.bia_discount_rate ?? 0) * 100).toFixed(1);
+        const coiStatement = p.metadata?.conflicts_of_interest || p.metadata?.coi_statement || 'Not provided';
+        const publicDossier = p.metadata?.public_dossier_available ? 'Yes' : 'Not specified';
+        const publicDossierUrl = p.metadata?.public_dossier_url || 'Not provided';
+        const submissionIssues = this.getSubmissionIssues();
+        const submissionErrors = submissionIssues.filter(i => i.severity === 'error');
 
         let report = `
 ================================================================================
-                    NICE TECHNOLOGY APPRAISAL REPORT
+                    OMAN HTA SUBMISSION REPORT
                     HTA Artifact Standard v0.1
 ================================================================================
 
@@ -1216,13 +1775,24 @@ Author: ${p.metadata?.author || '-'}
 ================================================================================
 
 Model Type: ${p.model?.type || 'Unknown'}
-Time Horizon: ${p.settings?.time_horizon || '-'} years
-Cycle Length: ${p.settings?.cycle_length || '-'} years
-Starting Age: ${p.settings?.starting_age || '-'} years
-Discount Rate (Costs): ${((p.settings?.discount_rate_costs || 0) * 100).toFixed(1)}%
-Discount Rate (QALYs): ${((p.settings?.discount_rate_qalys || 0) * 100).toFixed(1)}%
-Half-Cycle Correction: ${p.settings?.half_cycle_correction || 'None'}
-Perspective: NHS & PSS (assumed)
+Time Horizon: ${settings.time_horizon || '-'} years
+Cycle Length: ${settings.cycle_length || '-'} years
+Starting Age: ${settings.starting_age || '-'} years
+Discount Rate (Costs): ${discountCostsPct}%
+Discount Rate (QALYs): ${discountQalysPct}%
+Half-Cycle Correction: ${settings.half_cycle_correction || 'None'}
+Perspective: Oman payer/provider (health care base case)
+Currency: ${currency}
+GDP per Capita (OMR): ${gdpPerCapita}
+GDP Year/Source: ${gdpYear || '-'} / ${gdpSource || '-'}
+GDP Confirmed: ${gdpConfirmed}
+CET Thresholds: ${wtpList}
+Primary WTP Threshold: ${primaryWtpLabel}
+Budget Impact Horizon: ${biaHorizon} years
+Budget Impact Discount Rate: ${biaDiscountPct}%
+Conflict of Interest Statement: ${coiStatement}
+Public Dossier Availability: ${publicDossier}
+Public Dossier URL: ${publicDossierUrl}
 
 Health States: ${Object.keys(p.states || {}).length}
 ${Object.entries(p.states || {}).map(([id, s]) => `  - ${id}: ${s.label} (${s.type})`).join('\n')}
@@ -1256,18 +1826,19 @@ ${v?.warnings?.length > 0 ? '\nWarnings:\n' + v.warnings.map(w => `  [${w.code}]
 Strategy Outcomes:
 ${strategies.map(([id, s]) => `
   ${s.label || id}:
-    Total Costs: £${s.total_costs?.toFixed(2) || '-'}
-    Total QALYs: ${s.total_qalys?.toFixed(4) || '-'}
-    Life Years: ${s.life_years?.toFixed(4) || '-'}
+    Total Costs: ${fmt(s.total_costs, 2)}
+    Total QALYs: ${Number.isFinite(s.total_qalys) ? s.total_qalys.toFixed(4) : '-'}
+    Life Years: ${Number.isFinite(s.life_years) ? s.life_years.toFixed(4) : '-'}
 `).join('')}
 `;
             if (r.incremental?.comparisons?.length > 0) {
                 const comp = r.incremental.comparisons[0];
                 report += `
 Incremental Analysis:
-  Incremental Costs: £${comp.incremental_costs?.toFixed(2) || '-'}
-  Incremental QALYs: ${comp.incremental_qalys?.toFixed(4) || '-'}
-  ICER: ${typeof comp.icer === 'number' ? `£${comp.icer.toFixed(2)}` : comp.icer || '-'}
+  Incremental Costs: ${fmt(comp.incremental_costs, 2)}
+  Incremental QALYs: ${Number.isFinite(comp.incremental_qalys) ? comp.incremental_qalys.toFixed(4) : '-'}
+  ICER: ${typeof comp.icer === 'number' ? fmt(comp.icer, 2) : (comp.icer || '-')}
+  NMB @ ${primaryWtpLabel}: ${fmt(comp.nmb_primary ?? comp.nmb_30k, 2)}
 `;
             }
         } else {
@@ -1276,7 +1847,37 @@ Incremental Analysis:
 
         report += `
 ================================================================================
-4. PROBABILISTIC SENSITIVITY ANALYSIS
+4. BUDGET IMPACT ANALYSIS
+================================================================================
+`;
+
+        if (this.biaResults) {
+            const bia = this.biaResults;
+            report += `
+Budget Impact Inputs:
+  Horizon: ${bia.years} years
+  Population: ${bia.population.toLocaleString('en-US')}
+  Population Growth Rate: ${(bia.growthRate * 100).toFixed(1)}%
+  Incremental Cost per Patient: ${fmt(bia.incrementalCost, 2)}
+  Fixed Implementation Cost: ${fmt(bia.fixedCost, 2)}
+  Discount Rate: ${(bia.discountRate * 100).toFixed(1)}%
+
+Budget Impact Results:
+  Total Budget Impact: ${fmt(bia.totalCost, 2)}
+`;
+            if (bia.rows?.length) {
+                report += `
+Yearly Breakdown:
+${bia.rows.map((row) => `  Year ${row.year}: ${fmt(row.annualCost, 2)} (Cumulative: ${fmt(row.cumulativeCost, 2)})`).join('\n')}
+`;
+            }
+        } else {
+            report += '\n  [No budget impact analysis available - run BIA first]\n';
+        }
+
+        report += `
+================================================================================
+5. PROBABILISTIC SENSITIVITY ANALYSIS
 ================================================================================
 `;
 
@@ -1287,27 +1888,28 @@ PSA Configuration:
   Iterations: ${psa.iterations || '-'}
   Random Seed: ${psa.seed || '-'}
   Convergence Status: ${psa.convergence?.converged ? 'Converged' : 'Not Converged'}
+  WTP Thresholds: ${wtpList}
+  Primary WTP: ${primaryWtpLabel}
 
 PSA Results:
-  Mean Incremental Costs: £${s.mean_incremental_costs?.toFixed(2) || '-'}
-  Mean Incremental QALYs: ${s.mean_incremental_qalys?.toFixed(4) || '-'}
-  Mean ICER: £${s.mean_icer?.toFixed(2) || '-'}
+  Mean Incremental Costs: ${fmt(s.mean_incremental_costs, 2)}
+  Mean Incremental QALYs: ${Number.isFinite(s.mean_incremental_qalys) ? s.mean_incremental_qalys.toFixed(4) : '-'}
+  Mean ICER: ${fmt(s.mean_icer, 2)}
 
 95% Credible Intervals:
-  ICER Lower: £${s.ci_lower_icer?.toFixed(2) || '-'}
-  ICER Upper: £${s.ci_upper_icer?.toFixed(2) || '-'}
+  ICER Lower: ${fmt(s.ci_lower_icer, 2)}
+  ICER Upper: ${fmt(s.ci_upper_icer, 2)}
 
 Cost-Effectiveness Probabilities:
-  P(CE) at £20,000/QALY: ${s.prob_ce_20k ? (s.prob_ce_20k * 100).toFixed(1) + '%' : '-'}
-  P(CE) at £30,000/QALY: ${s.prob_ce_30k ? (s.prob_ce_30k * 100).toFixed(1) + '%' : '-'}
+  P(CE) at ${primaryWtpLabel}: ${pct(probCEPrimary)}
 `;
             if (psa.convergence) {
                 report += `
 Convergence Diagnostics:
-  Cost Standard Error: £${psa.convergence.costSE?.toFixed(2) || '-'}
-  QALY Standard Error: ${psa.convergence.qalySE?.toFixed(6) || '-'}
-  Cost CV: ${(psa.convergence.costCV * 100)?.toFixed(2) || '-'}%
-  QALY CV: ${(psa.convergence.qalyCV * 100)?.toFixed(2) || '-'}%
+  Cost Standard Error: ${fmt(psa.convergence.costSE, 2)}
+  QALY Standard Error: ${Number.isFinite(psa.convergence.qalySE) ? psa.convergence.qalySE.toFixed(6) : '-'}
+  Cost CV: ${pct(psa.convergence.costCV)}
+  QALY CV: ${pct(psa.convergence.qalyCV)}
 `;
             }
         } else {
@@ -1316,19 +1918,19 @@ Convergence Diagnostics:
 
         report += `
 ================================================================================
-5. VALUE OF INFORMATION ANALYSIS
+6. VALUE OF INFORMATION ANALYSIS
 ================================================================================
 `;
 
         if (evpi) {
             report += `
 EVPI Analysis:
-  Willingness-to-Pay: £${evpi.wtp?.toLocaleString() || '-'}/QALY
-  EVPI per Patient: £${evpi.evpiPerPatient?.toFixed(2) || '-'}
+  Willingness-to-Pay: ${fmt(evpi.wtp, 0)}/QALY
+  EVPI per Patient: ${fmt(evpi.evpiPerPatient, 2)}
   Population Size: ${evpi.population?.toLocaleString() || '-'}
-  Time Horizon: ${evpi.years || '-'} years
-  Population EVPI: £${evpi.populationEVPI?.toLocaleString() || '-'}
-  Probability of Wrong Decision: ${evpi.probWrongDecision ? (evpi.probWrongDecision * 100).toFixed(1) + '%' : '-'}
+  Time Horizon: ${evpi.timeHorizon || evpi.years || '-'} years
+  Population EVPI: ${fmt(evpi.populationEVPI, 2)}
+  Probability of Wrong Decision: ${pct(evpi.probWrongDecision)}
   Optimal Strategy (current info): ${evpi.optimalStrategy || '-'}
 `;
         } else {
@@ -1337,17 +1939,26 @@ EVPI Analysis:
 
         report += `
 ================================================================================
-6. NICE REFERENCE CASE COMPLIANCE
+7. OMAN HTA GUIDANCE ALIGNMENT
 ================================================================================
 
-Discount Rate Costs: ${p.settings?.discount_rate_costs === 0.035 ? 'COMPLIANT (3.5%)' : `NON-COMPLIANT (${(p.settings?.discount_rate_costs * 100).toFixed(1)}%)`}
-Discount Rate QALYs: ${p.settings?.discount_rate_qalys === 0.035 ? 'COMPLIANT (3.5%)' : `NON-COMPLIANT (${(p.settings?.discount_rate_qalys * 100).toFixed(1)}%)`}
-Half-Cycle Correction: ${p.settings?.half_cycle_correction ? 'APPLIED' : 'NOT APPLIED'}
-PSA Iterations: ${psa?.iterations >= 10000 ? `COMPLIANT (${psa.iterations})` : `${psa?.iterations || 'N/A'} (minimum 10,000 recommended)`}
-Time Horizon: ${p.settings?.time_horizon >= 20 ? 'ADEQUATE' : 'May be insufficient for lifetime analysis'}
+Discount Rate Costs: ${settings.discount_rate_costs === 0.03 ? 'COMPLIANT (3.0%)' : `NON-COMPLIANT (${discountCostsPct}%)`}
+Discount Rate QALYs: ${settings.discount_rate_qalys === 0.03 ? 'COMPLIANT (3.0%)' : `NON-COMPLIANT (${discountQalysPct}%)`}
+Primary WTP Threshold: ${primaryWtpLabel}
+GDP per Capita (OMR): ${gdpPerCapita}
+CET Thresholds: ${wtpList}
+Half-Cycle Correction: ${settings.half_cycle_correction ? 'APPLIED' : 'NOT APPLIED'}
+PSA Iterations: ${psa?.iterations >= 10000 ? `COMPLIANT (${psa.iterations})` : `${psa?.iterations || 'N/A'} (10,000 recommended)`}
+Time Horizon: ${settings.time_horizon >= 20 ? 'ADEQUATE' : 'May be insufficient for lifetime analysis'}
+Budget Impact Horizon: ${biaHorizon === 4 ? 'COMPLIANT (4 years)' : `NON-COMPLIANT (${biaHorizon} years)`}
+Budget Impact Discounting: ${(settings.bia_discount_rate ?? 0) === 0 ? 'COMPLIANT (0%)' : `NON-COMPLIANT (${biaDiscountPct}%)`}
+Conflict of Interest Statement: ${coiStatement}
+Public Dossier Availability: ${publicDossier}
+Submission Readiness: ${submissionErrors.length === 0 ? 'READY' : 'NOT READY'}
+Submission Issues: ${submissionIssues.length ? submissionIssues.map(i => i.message).join('; ') : 'None'}
 
 ================================================================================
-7. AUDIT TRAIL
+8. AUDIT TRAIL
 ================================================================================
 `;
 
@@ -1408,7 +2019,9 @@ Parameter Overrides: ${summary.parameterChanges}
                 run_id: crypto.randomUUID(),
                 timestamp: new Date().toISOString(),
                 deterministic: this.results,
-                psa: this.psaResults
+                psa: this.psaResults,
+                proof: this.proofResults,
+                bia: this.biaResults
             }, null, 2));
         }
 
@@ -1527,9 +2140,22 @@ Parameter Overrides: ${summary.parameterChanges}
     }
 }
 
+// Provide early stubs for selenium scripts
+if (typeof window !== 'undefined') {
+    window.showSection = (section) => {
+        if (window.app && typeof window.app.navigateToSection === 'function') {
+            window.app.navigateToSection(section);
+        } else {
+            window.__pendingSection = section;
+        }
+    };
+}
+
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new HTAApp();
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) loadingOverlay.classList.remove('active');
 
     // Expose global functions for external access and testing
     window.showSection = (section) => window.app.navigateToSection(section);
@@ -1541,4 +2167,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.runNMA = () => window.app.runNMA && window.app.runNMA();
     window.runSurvivalAnalysis = () => window.app.runSurvivalAnalysis && window.app.runSurvivalAnalysis();
     window.runEVPPI = () => window.app.runEVPPI && window.app.runEVPPI();
+
+    if (window.__pendingSection) {
+        window.app.navigateToSection(window.__pendingSection);
+        window.__pendingSection = null;
+    }
 });

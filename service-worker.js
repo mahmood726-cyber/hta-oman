@@ -10,8 +10,8 @@
  * - Cache management strategies
  */
 
-const CACHE_NAME = 'oman-hta-v1.0.0';
-const RUNTIME_CACHE = 'oman-hta-runtime-v1.0.0';
+const CACHE_NAME = 'oman-hta-v1.0.2';
+const RUNTIME_CACHE = 'oman-hta-runtime-v1.0.2';
 
 // Core files to cache on install
 const PRECACHE_URLS = [

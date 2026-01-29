@@ -2,7 +2,7 @@
  * Audit Logger for HTA Models
  * Provides comprehensive logging of model execution for regulatory review
  *
- * Reference: NICE Methods Guide - Transparency and Reproducibility
+ * Reference: Oman HTA methodological guidance - transparency and reproducibility
  *
  * Features:
  * - Structured audit trail

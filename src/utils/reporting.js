@@ -1216,11 +1216,14 @@ class ReportGenerator {
                 `Mean ICER: ${sensitivityResults.psa.meanICER.toFixed(0)} ` +
                 `(95% CI: ${sensitivityResults.psa.icerCI[0].toFixed(0)} - ${sensitivityResults.psa.icerCI[1].toFixed(0)})`
             );
+            const primaryWtp = sensitivityResults.psa.primary_wtp || sensitivityResults.psa.wtp || 0;
+            const primaryProb = sensitivityResults.psa.prob_ce?.[primaryWtp]
+                ?? sensitivityResults.psa.probCEPrimary
+                ?? sensitivityResults.psa.probCE30k
+                ?? 0;
+            const primaryLabel = primaryWtp > 0 ? primaryWtp.toLocaleString() : 'primary threshold';
             this.pdfReporter.addParagraph(
-                `Probability cost-effective at £20,000/QALY: ${(sensitivityResults.psa.probCE20k * 100).toFixed(1)}%`
-            );
-            this.pdfReporter.addParagraph(
-                `Probability cost-effective at £30,000/QALY: ${(sensitivityResults.psa.probCE30k * 100).toFixed(1)}%`
+                `Probability cost-effective at ${primaryLabel}/QALY: ${(primaryProb * 100).toFixed(1)}%`
             );
         }
 

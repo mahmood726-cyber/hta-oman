@@ -13,6 +13,40 @@
  * - Extrapolation validation
  */
 
+var OmanGuidanceRef = (function resolveOmanGuidance() {
+    if (typeof globalThis !== 'undefined' && globalThis.OmanHTAGuidance) {
+        return globalThis.OmanHTAGuidance;
+    }
+    if (typeof require === 'function') {
+        try {
+            return require('../utils/omanGuidance');
+        } catch (err) {
+            return null;
+        }
+    }
+    return null;
+})();
+
+var guidanceDefaults = OmanGuidanceRef?.defaults || {
+    discount_rate_costs: 0.03,
+    discount_rate_qalys: 0.03,
+    currency: 'OMR'
+};
+
+function resolveWtpThresholds(settings) {
+    if (OmanGuidanceRef?.resolveWtpThresholds) {
+        return OmanGuidanceRef.resolveWtpThresholds(settings).thresholds;
+    }
+    const explicit = Array.isArray(settings?.wtp_thresholds) ? settings.wtp_thresholds : null;
+    if (explicit && explicit.length) return explicit;
+    return [20000, 30000, 50000];
+}
+
+function resolvePrimaryWtp(settings) {
+    const thresholds = resolveWtpThresholds(settings);
+    return thresholds[0];
+}
+
 class PartitionedSurvivalEngine {
     constructor(options = {}) {
         this.options = {
@@ -382,13 +416,16 @@ class PartitionedSurvivalEngine {
     getSettings(project) {
         const s = project.settings || {};
         return {
-            time_horizon: s.time_horizon || 40,
-            cycle_length: s.cycle_length || 1/12, // Monthly by default for oncology
-            discount_rate_costs: s.discount_rate_costs || 0.035,
-            discount_rate_qalys: s.discount_rate_qalys || 0.035,
+            time_horizon: s.time_horizon ?? 40,
+            cycle_length: s.cycle_length ?? 1 / 12, // Monthly by default for oncology
+            discount_rate_costs: s.discount_rate_costs ?? guidanceDefaults.discount_rate_costs,
+            discount_rate_qalys: s.discount_rate_qalys ?? guidanceDefaults.discount_rate_qalys,
             half_cycle_correction: s.half_cycle_correction || 'trapezoidal',
-            currency: s.currency || 'GBP',
-            starting_age: s.starting_age || 60
+            currency: s.currency || guidanceDefaults.currency,
+            starting_age: s.starting_age ?? 60,
+            gdp_per_capita_omr: s.gdp_per_capita_omr,
+            wtp_thresholds: s.wtp_thresholds,
+            wtp_multipliers: s.wtp_multipliers
         };
     }
 
@@ -515,6 +552,9 @@ class PartitionedSurvivalEngine {
      * Run comparative analysis (intervention vs comparator)
      */
     runComparative(project, interventionParams = {}, comparatorParams = {}) {
+        const settings = this.getSettings(project);
+        const wtpThresholds = resolveWtpThresholds(settings);
+        const primaryWtp = resolvePrimaryWtp(settings);
         const intResults = this.run(project, interventionParams);
         const compResults = this.run(project, comparatorParams);
 
@@ -539,6 +579,12 @@ class PartitionedSurvivalEngine {
             }
         }
 
+        const nmb = {};
+        for (const wtp of wtpThresholds) {
+            nmb[wtp] = incQalys * wtp - incCosts;
+        }
+        const primaryNmb = incQalys * primaryWtp - incCosts;
+
         return {
             intervention: intResults,
             comparator: compResults,
@@ -548,9 +594,13 @@ class PartitionedSurvivalEngine {
                 life_years: incLY,
                 icer: icer,
                 dominance: dominance,
-                nmb_20k: incQalys * 20000 - incCosts,
-                nmb_30k: incQalys * 30000 - incCosts,
-                nmb_50k: incQalys * 50000 - incCosts
+                nmb: nmb,
+                wtp_thresholds: wtpThresholds,
+                primary_wtp: primaryWtp,
+                nmb_primary: primaryNmb,
+                nmb_20k: primaryNmb,
+                nmb_30k: primaryNmb,
+                nmb_50k: primaryNmb
             }
         };
     }

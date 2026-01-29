@@ -88,7 +88,7 @@ class SemanticValidator {
         this.checkUnusedParameters();
         this.checkDocumentation();
 
-        // Clinical plausibility and NICE compliance
+        // Clinical plausibility and Oman guidance checks
         this.checkTimeHorizon();
         this.checkDiscountRates();
         this.checkClinicalPlausibility();
@@ -704,7 +704,7 @@ class SemanticValidator {
                 ValidationCodes.TIME_HORIZON_INVALID,
                 'settings.time_horizon',
                 'Time horizon not specified',
-                'Specify time horizon in years. NICE typically requires lifetime horizon.'
+                'Specify time horizon in years. Oman MOH guidance typically requires a lifetime horizon unless justified.'
             );
             return;
         }
@@ -724,7 +724,7 @@ class SemanticValidator {
                 ValidationCodes.SHORT_TIME_HORIZON,
                 'settings.time_horizon',
                 `Time horizon of ${timeHorizon} years may be too short`,
-                'NICE reference case typically requires lifetime horizon unless justified'
+                'Oman MOH guidance typically requires a lifetime horizon unless justified'
             );
         }
 
@@ -751,8 +751,8 @@ class SemanticValidator {
         const discountCosts = settings.discount_rate_costs;
         const discountQalys = settings.discount_rate_qalys;
 
-        // NICE reference case: 3.5%
-        const niceRate = 0.035;
+        // Oman MOH HTA guidance: 3.0%
+        const guidanceRate = 0.03;
         const tolerance = 0.001;
 
         if (discountCosts !== undefined) {
@@ -763,13 +763,13 @@ class SemanticValidator {
                     'settings.discount_rate_costs',
                     `Discount rate ${discountCosts} is outside plausible range [0, 15%]`
                 );
-            } else if (Math.abs(discountCosts - niceRate) > tolerance) {
+            } else if (Math.abs(discountCosts - guidanceRate) > tolerance) {
                 this.addIssue(
                     Severity.INFO,
                     ValidationCodes.NICE_COMPLIANCE,
                     'settings.discount_rate_costs',
-                    `Discount rate ${(discountCosts * 100).toFixed(1)}% differs from NICE reference case (3.5%)`,
-                    'NICE reference case uses 3.5% for costs. Deviation requires justification.'
+                    `Discount rate ${(discountCosts * 100).toFixed(1)}% differs from Oman MOH HTA guidance (3.0%)`,
+                    'Oman MOH HTA guidance uses 3.0% for costs. Deviation requires justification.'
                 );
             }
         }
@@ -782,13 +782,13 @@ class SemanticValidator {
                     'settings.discount_rate_qalys',
                     `Discount rate ${discountQalys} is outside plausible range [0, 15%]`
                 );
-            } else if (Math.abs(discountQalys - niceRate) > tolerance) {
+            } else if (Math.abs(discountQalys - guidanceRate) > tolerance) {
                 this.addIssue(
                     Severity.INFO,
                     ValidationCodes.NICE_COMPLIANCE,
                     'settings.discount_rate_qalys',
-                    `Discount rate ${(discountQalys * 100).toFixed(1)}% differs from NICE reference case (3.5%)`,
-                    'NICE reference case uses 3.5% for QALYs. Deviation requires justification.'
+                    `Discount rate ${(discountQalys * 100).toFixed(1)}% differs from Oman MOH HTA guidance (3.0%)`,
+                    'Oman MOH HTA guidance uses 3.0% for QALYs. Deviation requires justification.'
                 );
             }
         }
@@ -801,7 +801,7 @@ class SemanticValidator {
                     ValidationCodes.NICE_COMPLIANCE,
                     'settings',
                     'Different discount rates for costs and QALYs',
-                    'NICE reference case uses equal discount rates. Differential discounting requires justification.'
+                    'Oman MOH guidance uses equal discount rates for costs and outcomes. Differential discounting requires justification.'
                 );
             }
         }
@@ -866,12 +866,13 @@ class SemanticValidator {
 
                 // Cost checks
                 if (label.includes('cost') || paramId.startsWith('c_')) {
+                    const currency = this.project.settings?.currency || 'OMR';
                     if (value > 1000000) {
                         this.addIssue(
                             Severity.WARNING,
                             ValidationCodes.EXTREME_VALUE,
                             `parameters.${paramId}`,
-                            `Cost £${value.toLocaleString()} per cycle is very high`,
+                            `Cost ${currency} ${value.toLocaleString()} per cycle is very high`,
                             'Verify this is the correct per-cycle cost'
                         );
                     }
@@ -974,13 +975,13 @@ class SemanticValidator {
                 ValidationCodes.MISSING_DISTRIBUTIONS,
                 'parameters',
                 `${paramsWithoutDist} of ${totalParams} uncertain parameters lack distributions`,
-                'Add distributions to enable comprehensive PSA. NICE requires structural uncertainty to be explored.'
+                'Add distributions to enable comprehensive PSA. Oman MOH guidance expects uncertainty to be explored.'
             );
         }
     }
 
     /**
-     * Check NICE reference case compliance
+     * Check Oman HTA guidance alignment
      */
     checkNICECompliance() {
         const { settings, model, strategies } = this.project;
@@ -992,22 +993,102 @@ class SemanticValidator {
                 ValidationCodes.NICE_COMPLIANCE,
                 'settings.half_cycle_correction',
                 'No half-cycle correction applied',
-                'NICE reference case typically expects half-cycle correction'
+                'Oman MOH guidance typically expects half-cycle correction for Markov models'
             );
         }
 
-        // Check perspective (should be NHS/PSS)
+        // Check perspective (should reflect Oman payer/provider perspective)
         if (settings && settings.perspective) {
             const perspective = settings.perspective.toLowerCase();
-            if (!perspective.includes('nhs') && !perspective.includes('pss') && !perspective.includes('healthcare')) {
+            if (!perspective.includes('payer') && !perspective.includes('provider') && !perspective.includes('health')) {
                 this.addIssue(
                     Severity.INFO,
                     ValidationCodes.NICE_COMPLIANCE,
                     'settings.perspective',
-                    `Perspective '${settings.perspective}' may not align with NICE reference case`,
-                    'NICE reference case uses NHS and PSS perspective'
+                    `Perspective '${settings.perspective}' may not align with Oman MOH HTA guidance`,
+                    'Oman MOH HTA guidance uses a payer/provider health care perspective as the base case'
                 );
             }
+        }
+
+        // GDP per capita must be specified and confirmed for CET thresholds
+        if (!settings || !Number.isFinite(settings.gdp_per_capita_omr) || settings.gdp_per_capita_omr <= 0) {
+            this.addIssue(
+                Severity.ERROR,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.gdp_per_capita_omr',
+                'GDP per capita is missing or invalid',
+                'Specify and confirm Oman GDP per capita to derive CET thresholds.'
+            );
+        } else if (!settings.gdp_per_capita_confirmed) {
+            this.addIssue(
+                Severity.ERROR,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.gdp_per_capita_confirmed',
+                'GDP per capita not confirmed for submission',
+                'Confirm the GDP per capita value used for CET thresholds.'
+            );
+        }
+
+        // Budget impact analysis horizon (Oman guidance: 4 years)
+        if (settings && Number.isFinite(settings.bia_horizon_years)) {
+            if (settings.bia_horizon_years !== 4) {
+                this.addIssue(
+                    Severity.INFO,
+                    ValidationCodes.NICE_COMPLIANCE,
+                    'settings.bia_horizon_years',
+                    `Budget impact horizon ${settings.bia_horizon_years} years differs from Oman HTA guidance (4 years)`,
+                    'Oman HTA guidance specifies a 4-year budget impact horizon unless justified.'
+                );
+            }
+        } else {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.bia_horizon_years',
+                'Budget impact horizon not specified',
+                'Oman HTA guidance specifies a 4-year budget impact horizon.'
+            );
+        }
+
+        // Budget impact discounting (Oman guidance: no discounting)
+        if (settings && settings.bia_discount_rate !== undefined && settings.bia_discount_rate !== 0) {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.bia_discount_rate',
+                `Budget impact discount rate ${(settings.bia_discount_rate * 100).toFixed(1)}% differs from Oman HTA guidance (0%)`,
+                'Oman HTA guidance recommends no discounting for budget impact analysis.'
+            );
+        }
+
+        // Transparency: conflict of interest and public dossier
+        const coi = this.project?.metadata?.conflicts_of_interest || this.project?.metadata?.coi_statement;
+        if (!coi) {
+            this.addIssue(
+                Severity.ERROR,
+                ValidationCodes.NICE_COMPLIANCE,
+                'metadata.conflicts_of_interest',
+                'Conflict of interest statement not provided',
+                'Oman HTA guidance requires disclosure of conflicts of interest.'
+            );
+        }
+        if (this.project?.metadata?.public_dossier_available !== true) {
+            this.addIssue(
+                Severity.ERROR,
+                ValidationCodes.NICE_COMPLIANCE,
+                'metadata.public_dossier_available',
+                'Public dossier availability not specified',
+                'Oman HTA guidance expects public availability of HTA dossiers.'
+            );
+        } else if (!(this.project?.metadata?.public_dossier_url || '').trim()) {
+            this.addIssue(
+                Severity.ERROR,
+                ValidationCodes.NICE_COMPLIANCE,
+                'metadata.public_dossier_url',
+                'Public dossier URL not provided',
+                'Provide the public dossier URL when availability is confirmed.'
+            );
         }
 
         // Check for comparator strategy
