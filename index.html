@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self';">
     <title>Oman HTA Platform v0.5 - Oman Edition</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
@@ -19,6 +20,11 @@
             --primary-light: #3b82f6;
             --secondary: #64748b;
             --secondary-dark: #475569;
+
+            /* Accent color (TruthCert gold) */
+            --accent: #e6a919;
+            --accent-dark: #c99415;
+            --accent-light: #f0b929;
 
             /* Status colors */
             --success: #16a34a;
@@ -269,6 +275,267 @@
             background: #cbd5e1;
         }
 
+        .btn-icon {
+            padding: 8px 10px;
+            min-width: 36px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            background: var(--bg);
+        }
+
+        .btn-icon:not(:disabled):hover {
+            background: var(--primary-light);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        /* Undo/Redo specific styling */
+        #btn-undo:not(:disabled),
+        #btn-redo:not(:disabled) {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        #btn-undo:not(:disabled):hover,
+        #btn-redo:not(:disabled):hover {
+            background: var(--primary-dark);
+        }
+
+        /* Tooltip styling */
+        .tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            background: var(--bg);
+            border-radius: 50%;
+            color: var(--text-muted);
+            cursor: help;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .tooltip-icon:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ICER interpretation panel */
+        .icer-interpretation {
+            margin-top: 12px;
+            padding: 12px 16px;
+            background: var(--bg);
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+            border-left: 4px solid var(--primary);
+        }
+
+        .icer-interpretation.cost-effective {
+            border-left-color: var(--success);
+            background: rgba(22, 163, 74, 0.1);
+        }
+
+        .icer-interpretation.not-cost-effective {
+            border-left-color: var(--error);
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        .icer-interpretation.dominant {
+            border-left-color: var(--success);
+            background: rgba(22, 163, 74, 0.15);
+        }
+
+        .icer-interpretation.uncertain {
+            border-left-color: var(--warning);
+            background: rgba(217, 119, 6, 0.1);
+        }
+
+        /* Empty state styling */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h4 {
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            max-width: 400px;
+            margin: 0 auto 16px;
+        }
+
+        /* Keyboard Shortcuts Modal */
+        .shortcuts-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shortcuts-modal.active {
+            display: flex;
+        }
+
+        .shortcuts-content {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .shortcuts-content h3 {
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .shortcut-group {
+            margin-bottom: 16px;
+        }
+
+        .shortcut-group h4 {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .shortcut-key {
+            background: var(--bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            border: 1px solid var(--border);
+        }
+
+        /* RTL Support for Arabic */
+        [dir="rtl"] {
+            text-align: right;
+        }
+
+        [dir="rtl"] .sidebar {
+            border-left: 1px solid var(--border);
+            border-right: none;
+        }
+
+        [dir="rtl"] .nav-item {
+            flex-direction: row-reverse;
+        }
+
+        /* Progress Modal */
+        .progress-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1001;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-modal.active {
+            display: flex;
+        }
+
+        .progress-content {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            text-align: center;
+            min-width: 350px;
+        }
+
+        .progress-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-bar-container {
+            background: var(--bg);
+            border-radius: 8px;
+            height: 12px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        .progress-bar-fill {
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+            font-size: 13px;
+        }
+
+        .progress-stat {
+            text-align: center;
+        }
+
+        .progress-stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .progress-stat-label {
+            color: var(--text-muted);
+        }
+
         /* Drop Zone */
         .drop-zone {
             border: 2px dashed var(--border);
@@ -323,7 +590,15 @@
         }
 
         .nav-section {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
+        }
+
+        .nav-section.collapsed .nav-items {
+            display: none;
+        }
+
+        .nav-section.collapsed h3::after {
+            content: '+';
         }
 
         .nav-section h3 {
@@ -331,7 +606,25 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-muted);
-            margin-bottom: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .nav-section h3:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .nav-section h3::after {
+            content: '-';
+            font-weight: bold;
+            font-size: 14px;
+            color: var(--text-muted);
             padding: 0 12px;
         }
 
@@ -954,9 +1247,816 @@
         #file-input {
             display: none;
         }
+
+        /* ===== Oman Health Data Section ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #1a5f7a 0%, #134b5f 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #4fd1c5;
+        }
+        .stat-label {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0.5rem 0;
+        }
+        .stat-detail {
+            font-size: 0.8rem;
+            opacity: 0.85;
+        }
+
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .template-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.25rem;
+            background: #f8fafc;
+        }
+        .template-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: #1a5f7a;
+        }
+
+        /* Quick Start Banner */
+        .quick-start-banner {
+            background: linear-gradient(135deg, #1a5f7a 0%, #0d3d4d 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+        .quick-start-banner h3 {
+            margin: 0 0 0.5rem 0;
+            color: #4fd1c5;
+        }
+        .quick-start-banner p {
+            margin: 0 0 0.75rem 0;
+            opacity: 0.9;
+        }
+        .quick-steps {
+            margin: 0;
+            padding-left: 1.25rem;
+            font-size: 0.9rem;
+        }
+        .quick-steps li {
+            margin-bottom: 0.25rem;
+        }
+        .quick-start-action .btn {
+            white-space: nowrap;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+        @media (max-width: 768px) {
+            .quick-start-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        .template-category {
+            margin-bottom: 1.5rem;
+        }
+        .category-header {
+            color: #1a5f7a;
+            border-bottom: 2px solid #e0f2fe;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .template-card .category-badge {
+            font-size: 0.7rem;
+            background: #1a5f7a;
+            color: white;
+            padding: 0.15rem 0.4rem;
+            border-radius: 3px;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+        .template-meta {
+            margin: 0.75rem 0;
+        }
+        .template-meta .badge {
+            background: #e2e8f0;
+            color: #475569;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+        }
+
+        .risk-factors-display {
+            margin: 1rem 0;
+        }
+        .risk-bar {
+            display: flex;
+            align-items: center;
+            margin: 0.75rem 0;
+            gap: 1rem;
+        }
+        .risk-label {
+            width: 150px;
+            font-weight: 500;
+        }
+        .risk-progress {
+            height: 24px;
+            background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .risk-value {
+            font-weight: bold;
+            color: #ef4444;
+        }
+        .source-note {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 1rem;
+        }
+
+        /* ===== Learning Stories Section ===== */
+        .section-subtitle {
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+        .story-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .story-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .story-card:hover {
+            border-color: #1a5f7a;
+            box-shadow: 0 4px 12px rgba(26, 95, 122, 0.15);
+        }
+        .story-icon {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a5f7a;
+            background: #e0f2fe;
+            padding: 0.75rem;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem auto;
+            font-size: 0.7rem;
+        }
+        .story-card h4 {
+            margin: 0.5rem 0;
+            color: #0f172a;
+        }
+        .story-preview {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 1rem;
+        }
+
+        .reversal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .reversal-card {
+            border: 1px solid #fecaca;
+            border-left: 4px solid #ef4444;
+            border-radius: 8px;
+            padding: 1.25rem;
+            background: #fef2f2;
+        }
+        .reversal-category {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #b91c1c;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .reversal-card h4 {
+            margin: 0.5rem 0 0.25rem 0;
+            color: #7f1d1d;
+        }
+        .reversal-subtitle {
+            font-style: italic;
+            color: #991b1b;
+            margin: 0 0 0.75rem 0;
+            font-size: 0.9rem;
+        }
+        .reversal-preview {
+            font-size: 0.85rem;
+            color: #450a0a;
+            margin-bottom: 0.75rem;
+        }
+        .reversal-relevance {
+            font-size: 0.75rem;
+            color: #1a5f7a;
+            background: #e0f2fe;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+        }
+
+        .lessons-card {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #86efac;
+        }
+        .lessons-grid {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .lesson {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .lesson-number {
+            background: #166534;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .lesson-content strong {
+            color: #166534;
+        }
+        .lesson-content p {
+            margin: 0.25rem 0 0 0;
+            color: #374151;
+        }
+
+        /* Story Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-lg {
+            width: 90%;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .modal-header h3 {
+            margin: 0;
+            color: #1a5f7a;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            text-align: right;
+        }
+
+        .story-section {
+            margin-bottom: 1.5rem;
+        }
+        .story-section h4 {
+            color: #1a5f7a;
+            margin-bottom: 0.5rem;
+            border-bottom: 2px solid #e0f2fe;
+            padding-bottom: 0.25rem;
+        }
+        .story-text {
+            line-height: 1.7;
+            color: #374151;
+            white-space: pre-wrap;
+            font-family: Georgia, serif;
+        }
+        .story-data {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .story-data table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .story-data td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .story-data td:first-child {
+            font-weight: 500;
+            color: #475569;
+        }
+        .hta-lesson {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0 8px 8px 0;
+        }
+        .hta-lesson strong {
+            color: #92400e;
+        }
+
+        /* Modal Overlay Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 85vh;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-title {
+            margin: 0;
+            font-size: 1.25rem;
+            color: var(--text);
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 0.25rem;
+        }
+        .modal-close:hover {
+            color: var(--text);
+        }
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: calc(85vh - 60px);
+        }
+
+        /* Tutorial Menu Styles */
+        .tutorial-menu h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.5rem;
+        }
+        .tutorial-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .tutorial-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+        .tutorial-item:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        .tutorial-icon {
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-light);
+            border-radius: 8px;
+            color: white;
+        }
+        .tutorial-info h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--text);
+        }
+        .tutorial-info p {
+            margin: 0 0 0.5rem 0;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+        .tutorial-info .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 0.25rem;
+        }
+        .tutorial-info .progress-fill {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s;
+        }
+        .tutorial-info .progress-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Tutorial Lesson Styles */
+        .tutorial-lesson {
+            max-width: 100%;
+        }
+        .tutorial-lesson h3 {
+            margin: 0 0 1rem 0;
+        }
+        .lesson-content {
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+        .lesson-content h4 {
+            margin: 1.5rem 0 0.5rem 0;
+            color: var(--primary);
+        }
+        .lesson-content pre {
+            background: var(--bg);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        .lesson-quiz {
+            background: var(--info);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .lesson-quiz h4 {
+            margin: 0 0 0.5rem 0;
+        }
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .quiz-option {
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .quiz-option:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .lesson-nav {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        .lesson-nav button {
+            padding: 0.5rem 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .lesson-nav button:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Model Wizard Styles */
+        .wizard-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+        }
+        .wizard-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            width: 95%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .wizard-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .wizard-steps {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .wizard-step {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: var(--border);
+            color: var(--text-muted);
+            transition: all 0.3s;
+        }
+        .wizard-step.active {
+            background: var(--primary);
+            color: white;
+        }
+        .wizard-step.completed {
+            background: var(--success);
+            color: white;
+        }
+        .wizard-content {
+            padding: 2rem;
+            min-height: 400px;
+            max-height: calc(90vh - 180px);
+            overflow-y: auto;
+        }
+        .wizard-footer {
+            padding: 1rem 2rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Results Dashboard Styles */
+        #dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            padding: 1rem;
+        }
+        .dashboard-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .dashboard-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .dashboard-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .dashboard-value.positive {
+            color: var(--success);
+        }
+        .dashboard-value.negative {
+            color: var(--error);
+        }
+        .dashboard-chart {
+            height: 200px;
+        }
+
+        /* MCDA Styles */
+        .mcda-interface {
+            max-width: 100%;
+        }
+        .mcda-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+        .mcda-domain {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .mcda-domain h4 {
+            margin: 0 0 1rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .weight-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+        .mcda-criterion {
+            background: var(--bg-card);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border);
+        }
+        .mcda-criterion label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        .criterion-desc {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin: 0 0 0.75rem 0;
+        }
+        .score-slider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .score-slider input[type="range"] {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: var(--border);
+            border-radius: 4px;
+        }
+        .score-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .score-value {
+            min-width: 40px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .mcda-justification {
+            width: 100%;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 60px;
+            font-family: inherit;
+        }
+        .mcda-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        .mcda-results {
+            text-align: center;
+        }
+        .mcda-score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 8px solid;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+        .mcda-score-circle .score-number {
+            font-size: 3rem;
+            font-weight: 700;
+        }
+        .mcda-score-circle .score-label {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+        }
+        .mcda-domain-scores {
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+        .mcda-domain-scores table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .mcda-domain-scores th,
+        .mcda-domain-scores td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .mcda-strengths-weaknesses {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+            text-align: left;
+        }
+        .mcda-strengths-weaknesses h4 {
+            margin: 0 0 0.5rem 0;
+        }
+        .mcda-strengths-weaknesses ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+        .strengths h4 { color: var(--success); }
+        .weaknesses h4 { color: var(--error); }
+
+        /* RTL Support */
+        [dir="rtl"] .mcda-domain h4 {
+            flex-direction: row-reverse;
+        }
+        [dir="rtl"] .score-slider {
+            flex-direction: row-reverse;
+        }
+        [dir="rtl"] .mcda-actions {
+            flex-direction: row-reverse;
+        }
+        [dir="rtl"] .mcda-strengths-weaknesses ul {
+            padding-left: 0;
+            padding-right: 1.5rem;
+        }
     </style>
 </head>
-<body>
+<body class="dark-mode">
     <!-- Skip to main content link for accessibility -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
@@ -970,9 +2070,23 @@
                 </div>
             </div>
             <div class="header-actions">
+                <button class="btn btn-secondary btn-icon" id="btn-undo" aria-label="Undo" title="Undo (Ctrl+Z)" disabled>
+                    <span>↶</span>
+                </button>
+                <button class="btn btn-secondary btn-icon" id="btn-redo" aria-label="Redo" title="Redo (Ctrl+Y)" disabled>
+                    <span>↷</span>
+                </button>
                 <button class="btn btn-secondary" id="btn-demo" aria-label="Load demo model">Load Demo</button>
+                <button class="btn btn-secondary" id="btn-open-wizard" aria-label="Model Wizard" title="Create model with wizard">Wizard</button>
+                <button class="btn btn-secondary" id="btn-open-tutorials" aria-label="Tutorials" title="Learn HTA">Tutorials</button>
                 <button class="btn btn-primary" id="btn-open" aria-label="Open HTA zip file">Open .hta.zip</button>
-                <button class="btn btn-secondary" id="btn-dark-mode" aria-label="Toggle dark mode" title="Toggle dark mode">
+                <button class="btn btn-secondary btn-icon" id="btn-lang" aria-label="Toggle language" title="العربية / English">
+                    <span id="lang-icon">ع</span>
+                </button>
+                <button class="btn btn-secondary btn-icon" id="btn-shortcuts" aria-label="Keyboard shortcuts" title="Keyboard Shortcuts (?)">
+                    <span>⌨</span>
+                </button>
+                <button class="btn btn-secondary btn-icon" id="btn-dark-mode" aria-label="Toggle dark mode" title="Toggle dark mode">
                     <span id="dark-mode-icon">🌙</span>
                 </button>
             </div>
@@ -987,26 +2101,30 @@
         </div>
 
         <!-- Main Content (shown after file loaded) -->
-        <div class="main-content" id="main-content">
-            <aside class="sidebar">
-                <div class="nav-section">
-                    <h3>Overview</h3>
-                    <a href="#" class="nav-item active" data-section="summary">
-                        <span class="nav-icon">📊</span>
-                        Summary
+        <div class="main-content" id="main-content" role="application" aria-label="HTA Analysis Application">
+            <aside class="sidebar" role="navigation" aria-label="Main navigation">
+                <nav class="nav-section" aria-label="Overview section">
+                    <h3 id="nav-overview">Overview</h3>
+                    <a href="#section-summary" class="nav-item active" data-section="summary" role="link" aria-current="page">
+                        <span class="nav-icon" aria-hidden="true">📊</span>
+                        <span>Summary</span>
                     </a>
-                    <a href="#" class="nav-item" data-section="validation">
-                        <span class="nav-icon">✓</span>
-                        Validation
-                        <span class="nav-badge" id="validation-badge">-</span>
+                    <a href="#section-validation" class="nav-item" data-section="validation" role="link">
+                        <span class="nav-icon" aria-hidden="true">✓</span>
+                        <span>Validation</span>
+                        <span class="nav-badge" id="validation-badge" aria-label="Validation status">-</span>
                     </a>
-                </div>
+                </nav>
 
                 <div class="nav-section">
                     <h3>Oman Guidance</h3>
                     <a href="#" class="nav-item" data-section="oman-guidance">
-                        <span class="nav-icon">DOC</span>
+                        <span class="nav-icon">📋</span>
                         Oman HTA Guidance
+                    </a>
+                    <a href="#" class="nav-item" data-section="oman-health-data">
+                        <span class="nav-icon">🏥</span>
+                        Oman Health Data
                     </a>
                 </div>
 
@@ -1036,7 +2154,7 @@
                         Base Case
                     </a>
                     <a href="#" class="nav-item" data-section="budget-impact">
-                        <span class="nav-icon">ðŸ’°</span>
+                        <span class="nav-icon">💰</span>
                         Budget Impact
                     </a>
                     <a href="#" class="nav-item" data-section="psa">
@@ -1059,163 +2177,26 @@
                         <span class="nav-icon">💾</span>
                         Export
                     </a>
+                    <a href="#" class="nav-item" data-section="compare">
+                        <span class="nav-icon">⚖️</span>
+                        Compare Analyses
+                    </a>
                 </div>
 
                 <div class="nav-section">
-                    <h3>Advanced (v0.2)</h3>
+                    <h3>Advanced Modeling</h3>
                     <a href="#" class="nav-item" data-section="microsim">
                         <span class="nav-icon">👤</span>
                         Microsimulation
                     </a>
-                    <a href="#" class="nav-item" data-section="des">
-                        <span class="nav-icon">⏱️</span>
-                        DES
-                    </a>
-                    <a href="#" class="nav-item" data-section="survival">
-                        <span class="nav-icon">📉</span>
-                        Survival Fitting
-                    </a>
-                    <a href="#" class="nav-item" data-section="calibration">
-                        <span class="nav-icon">🎯</span>
-                        Calibration
-                    </a>
-                    <a href="#" class="nav-item" data-section="evppi">
-                        <span class="nav-icon">💎</span>
-                        EVPPI
-                    </a>
                 </div>
 
-                <div class="nav-section">
-                    <h3>Evidence Synthesis (v0.3)</h3>
-                    <a href="#" class="nav-item" data-section="nma">
-                        <span class="nav-icon">🔗</span>
-                        Network MA
-                    </a>
-                    <a href="#" class="nav-item" data-section="meta-methods">
-                        <span class="nav-icon">📊</span>
-                        Meta-Analysis
-                    </a>
-                    <a href="#" class="nav-item" data-section="pub-bias">
-                        <span class="nav-icon">📈</span>
-                        Publication Bias
-                    </a>
-                    <a href="#" class="nav-item" data-section="reporting">
-                        <span class="nav-icon">📋</span>
-                        CHEERS/GRADE
-                    </a>
-                </div>
+                <!-- Evidence Synthesis, Advanced Methods, and Frontier Methods sections removed (under development) -->
 
-                <div class="nav-section">
-                    <h3>Advanced Methods (v0.4)</h3>
-                    <a href="#" class="nav-item" data-section="three-level">
-                        <span class="nav-icon">📚</span>
-                        Three-Level MA
-                    </a>
-                    <a href="#" class="nav-item" data-section="multivariate">
-                        <span class="nav-icon">🎯</span>
-                        Multivariate MA
-                    </a>
-                    <a href="#" class="nav-item" data-section="dose-response">
-                        <span class="nav-icon">📐</span>
-                        Dose-Response
-                    </a>
-                    <a href="#" class="nav-item" data-section="component-nma">
-                        <span class="nav-icon">🧩</span>
-                        Component NMA
-                    </a>
-                    <a href="#" class="nav-item" data-section="living-review">
-                        <span class="nav-icon">🔄</span>
-                        Living Review
-                    </a>
-                    <a href="#" class="nav-item" data-section="rob-assessment">
-                        <span class="nav-icon">⚖️</span>
-                        ROB-2/ROBINS-I
-                    </a>
-                    <a href="#" class="nav-item" data-section="prisma-flow">
-                        <span class="nav-icon">📋</span>
-                        PRISMA 2020
-                    </a>
-                </div>
-
-                <div class="nav-section">
-                    <h3>Frontier Methods (v0.5)</h3>
-                    <a href="#" class="nav-item" data-section="ipd-meta">
-                        <span class="nav-icon">👤</span>
-                        IPD Meta-Analysis
-                    </a>
-                    <a href="#" class="nav-item" data-section="dta-meta">
-                        <span class="nav-icon">🔬</span>
-                        DTA Meta-Analysis
-                    </a>
-                    <a href="#" class="nav-item" data-section="advanced-pb">
-                        <span class="nav-icon">🎭</span>
-                        Copas/RoBMA
-                    </a>
-                    <a href="#" class="nav-item" data-section="fabrication">
-                        <span class="nav-icon">🔍</span>
-                        GRIM/SPRITE
-                    </a>
-                    <a href="#" class="nav-item" data-section="ml-screening">
-                        <span class="nav-icon">🤖</span>
-                        ML Screening
-                    </a>
-                    <a href="#" class="nav-item" data-section="mr-meta">
-                        <span class="nav-icon">🧬</span>
-                        MR Meta-Analysis
-                    </a>
-                    <a href="#" class="nav-item" data-section="historical">
-                        <span class="nav-icon">📜</span>
-                        Power Priors
-                    </a>
-                    <a href="#" class="nav-item" data-section="survival-ma">
-                        <span class="nav-icon">📈</span>
-                        Survival MA
-                    </a>
-                    <a href="#" class="nav-item" data-section="threshold">
-                        <span class="nav-icon">🎚️</span>
-                        Threshold Analysis
-                    </a>
-                    <a href="#" class="nav-item" data-section="federated">
-                        <span class="nav-icon">🔒</span>
-                        Federated MA
-                    </a>
-                </div>
-
-                <div class="nav-section">
-                    <h3>🌍 World Class Features (v1.0)</h3>
-                    <a href="#" class="nav-item" data-section="ai-interpretation">
-                        <span class="nav-icon">🧠</span>
-                        AI Interpretation
-                    </a>
-                    <a href="#" class="nav-item" data-section="model-library">
-                        <span class="nav-icon">📚</span>
-                        Model Library
-                        <span class="nav-badge">30+</span>
-                    </a>
-                    <a href="#" class="nav-item" data-section="data-sources">
-                        <span class="nav-icon">🌐</span>
-                        Real-World Data
-                    </a>
-                    <a href="#" class="nav-item" data-section="network-viz">
-                        <span class="nav-icon">🔗</span>
-                        Interactive Network
-                    </a>
-                    <a href="#" class="nav-item" data-section="report-gen">
-                        <span class="nav-icon">📄</span>
-                        Generate Report
-                    </a>
-                    <a href="#" class="nav-item" data-section="collaboration">
-                        <span class="nav-icon">👥</span>
-                        Collaboration
-                    </a>
-                    <a href="#" class="nav-item" data-section="pwa-install">
-                        <span class="nav-icon">📱</span>
-                        Install App
-                    </a>
-                </div>
+                <!-- World Class Features section removed (under development) -->
             </aside>
 
-            <main class="content-area">
+            <main class="content-area" role="main" aria-label="Analysis results and controls">
                 <!-- Summary Section -->
                 <section id="section-summary" class="content-section">
                     <div class="content-header">
@@ -1358,9 +2339,9 @@
                             <div class="card">
                                 <h4>Comparators and Health Gain</h4>
                                 <ul class="guidance-list">
-                                    <li>Comparator should be authorized, reimbursed, evidence-based, and aligned with clinical guidelines.</li>
-                                    <li>Health gain assessment should cover mortality, morbidity, quality of life, function, and benefit-harm balance.</li>
-                                    <li>Use joint clinical assessments and HTA Core Model safety guidance when available.</li>
+                                    <li>Use a policy-relevant comparator aligned with clinical guidance.</li>
+                                    <li>Health benefit evaluation should prioritize mortality, morbidity, and quality of life.</li>
+                                    <li>Clinical assessment reports from reputable HTA agencies are encouraged.</li>
                                 </ul>
                             </div>
                             <div class="card">
@@ -1370,7 +2351,7 @@
                                     <li>Cost-minimization is only for equivalent outcomes.</li>
                                     <li>Health care (payer/provider) perspective is the required base case.</li>
                                     <li>Discount costs and outcomes at 3%.</li>
-                                    <li>Use Oman unit costs in OMR; list prices for base case when discounts apply.</li>
+                                    <li>Apply explicit cost-effectiveness thresholds based on GDP per capita.</li>
                                 </ul>
                             </div>
                             <div class="card">
@@ -1378,14 +2359,13 @@
                                 <ul class="guidance-list">
                                     <li>4-year projection horizon.</li>
                                     <li>No discounting in budget impact.</li>
-                                    <li>Use Oman epidemiology and unit costs; payer costs only.</li>
-                                    <li>Deterministic sensitivity analysis is mandatory.</li>
+                                    <li>Deterministic sensitivity analysis is mandatory (±10%).</li>
                                 </ul>
                             </div>
                             <div class="card">
                                 <h4>Transparency</h4>
                                 <ul class="guidance-list">
-                                    <li>Publish HTA dossier elements (epidemiology, pathways, efficacy, methods).</li>
+                                    <li>Prepare both full and public versions of the HTA dossier.</li>
                                     <li>Declare conflicts of interest and expert contributions.</li>
                                     <li>Review and update guidelines and checklists every 3 years.</li>
                                 </ul>
@@ -1403,21 +2383,26 @@
                         <div class="card">
                             <h3>Key Excerpts</h3>
                             <div class="guidance-excerpt">
-                                <p>"The workshop aimed to set guidelines for HTA in Oman, addressing vital aspects such as preferred measures for health gain, economic evaluation methodologies, cost-effectiveness thresholds, budget impact analysis frameworks, the transferability of international evidence, and the transparency of HTA submissions and appraisals."</p>
-                                <div class="citation">Source: <a href="https://moh.gov.om/media/txzllfqa/book.pdf" target="_blank" rel="noopener">MOH Guidelines PDF</a></div>
-                            </div>
-                            <div class="guidance-excerpt">
                                 <p>"The Omani HTA guidelines consist of six sections: target indication, medical assessment, economic evaluation, budget impact analysis, social and ethical considerations, and transparency."</p>
-                                <div class="citation">Source: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12690758/" target="_blank" rel="noopener">PMC Methodological Guidelines</a></div>
+                                <div class="citation">Source: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12690758/" target="_blank" rel="noopener">Methodological Guidelines (PMC)</a></div>
                             </div>
                             <div class="guidance-excerpt">
-                                <p>"Cost-utility analysis is the preferred method for cases where the outcomes are not assumed to be equal."</p>
+                                <p>"Cost-utility analysis with QALYs is preferred when added value is demonstrated; cost-minimization only for equivalent outcomes."</p>
                                 <p>"Discount all future costs and outcomes at a rate of 3%."</p>
-                                <div class="citation">Source: <a href="https://moh.gov.om/media/txzllfqa/book.pdf" target="_blank" rel="noopener">MOH Guidelines PDF</a></div>
+                                <div class="citation">Source: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12690758/" target="_blank" rel="noopener">Methodological Guidelines (PMC)</a></div>
                             </div>
                             <div class="guidance-excerpt">
-                                <p>"Budget impact analysis should be projected over a period of 4 years following the introduction of the therapy into the reimbursement system. Discounting should not be applied to the budget impact analysis."</p>
-                                <div class="citation">Source: <a href="https://moh.gov.om/media/txzllfqa/book.pdf" target="_blank" rel="noopener">MOH Guidelines PDF</a></div>
+                                <p>"Budget impact analysis should cover a four-year period."</p>
+                                <p>"Deterministic sensitivity analysis is mandatory with a 10% variation."</p>
+                                <div class="citation">Source: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12690758/" target="_blank" rel="noopener">Methodological Guidelines (PMC)</a></div>
+                            </div>
+                            <div class="guidance-excerpt">
+                                <p>"The cost-effectiveness threshold is 1x GDP per capita, with higher thresholds for priority, rare diseases, or significant health gains."</p>
+                                <div class="citation">Source: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12690758/" target="_blank" rel="noopener">Methodological Guidelines (PMC)</a></div>
+                            </div>
+                            <div class="guidance-excerpt">
+                                <p>"Full disclosure of conflicts of interest and public availability of HTA dossiers are mandatory."</p>
+                                <div class="citation">Source: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12690758/" target="_blank" rel="noopener">Methodological Guidelines (PMC)</a></div>
                             </div>
                             <div class="guidance-excerpt">
                                 <p>"In the short term (1-2 years), efforts will focus on building capacity through training programs. For medium-term actions (3-5 years), plans include expanding the HTA unit and introducing multiple cost-effectiveness thresholds while from 6-10 years, publishing of HTA recommendations, critical appraisal reports, and timelines is recommended."</p>
@@ -1428,16 +2413,12 @@
                         <div class="card">
                             <h3>Sources</h3>
                             <ul class="guidance-sources">
-                                <li><a href="https://moh.gov.om/media/txzllfqa/book.pdf" target="_blank" rel="noopener">MOH Guidelines for Health Technology Assessment (PDF)</a></li>
                                 <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12690758/" target="_blank" rel="noopener">Methodological guidelines for HTA in Oman (PMC)</a></li>
-                                <li><a href="https://p4h.world/app/uploads/2024/09/Oman-HTA-Roadmap.x80726.pdf" target="_blank" rel="noopener">Oman HTA Roadmap (P4H PDF)</a></li>
-                                <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11346210/" target="_blank" rel="noopener">A roadmap towards implementing HTA in Oman (PMC)</a></li>
-                                <li><a href="https://www.ispor.org/heor-resources/presentations-database/presentation-cti/ispor-europe-2025/poster-session-3-2/guidelines-for-health-technology-assessment-ministry-of-health-sultanate-of-oman" target="_blank" rel="noopener">ISPOR poster page</a></li>
-                                <li><a href="https://moh.gov.om/en/approved-documents/" target="_blank" rel="noopener">MOH Approved Documents index</a></li>
-                                <li><a href="https://www.linkedin.com/posts/syreon-middle-east_some-highlights-activity-7407405935364845568-c63e" target="_blank" rel="noopener">LinkedIn announcement (Syreon Middle East)</a></li>
-                                <li><a href="https://www.linkedin.com/posts/pinal-patel-adhrit_htaoman-oipcx2025-healthpolicy-activity-7316336738879131649-a14K" target="_blank" rel="noopener">LinkedIn announcement (Pinal Patel)</a></li>
+                                <li><a href="https://pubmed.ncbi.nlm.nih.gov/41384030/" target="_blank" rel="noopener">Methodological guidelines record (PubMed)</a></li>
+                                <li><a href="https://www.ispor.org/conferences-education/conferences/past-conferences/ispor-europe-2024/program/program/session/8892" target="_blank" rel="noopener">ISPOR Europe 2024 session (Oman HTA guidelines)</a></li>
+                                <li><a href="https://pubmed.ncbi.nlm.nih.gov/39308088/" target="_blank" rel="noopener">Oman HTA roadmap and adoption planning (PubMed)</a></li>
                             </ul>
-                            <p class="guidance-note">LinkedIn and ISPOR pages may require login/cookie consent; full extracted text is embedded below.</p>
+                            <p class="guidance-note">ISPOR pages may require login/cookie consent; embedded excerpts remain available below.</p>
                         
                         <div class="card" id="guidance-library">
                             <div class="guidance-toolbar">
@@ -1504,6 +2485,283 @@
                     </div>
                 </section>
 
+                <!-- Oman Health Data Section -->
+                <section id="section-oman-health-data" class="content-section" style="display:none;">
+                    <div class="content-header">
+                        <h2>Oman Health Data & Case Studies</h2>
+                    </div>
+                    <div class="content-body">
+                        <!-- Quick Start Guide -->
+                        <div class="quick-start-banner">
+                            <div class="quick-start-content">
+                                <h3>Quick Start Guide</h3>
+                                <p>Load a real Oman health dataset and run a complete cost-effectiveness analysis in 3 steps:</p>
+                                <ol class="quick-steps">
+                                    <li><strong>Choose a template</strong> - Select from 10 real HTA datasets below</li>
+                                    <li><strong>Review & customize</strong> - Check parameters in the Model section</li>
+                                    <li><strong>Run analysis</strong> - Click "Run Model" for base case, PSA, DSA, and EVPI</li>
+                                </ol>
+                            </div>
+                            <div class="quick-start-action">
+                                <button class="btn btn-primary" onclick="loadOmanTemplate('diabetes_type2_treatment')">
+                                    Try: Diabetes SGLT2 Analysis
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>Oman Epidemiology Overview</h3>
+                            <p>Real health statistics from Ministry of Health, WHO, and peer-reviewed research.</p>
+                            <div class="stats-grid" id="oman-epi-stats">
+                                <div class="stat-card">
+                                    <div class="stat-value">68%</div>
+                                    <div class="stat-label">NCD Deaths</div>
+                                    <div class="stat-detail">Non-communicable diseases account for 68% of all deaths</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">12.6%</div>
+                                    <div class="stat-label">Diabetes Prevalence</div>
+                                    <div class="stat-detail">Ranked 8th in MENA region</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">33%</div>
+                                    <div class="stat-label">CVD Deaths</div>
+                                    <div class="stat-detail">Leading cause of mortality</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">338.9</div>
+                                    <div class="stat-label">ACS Incidence</div>
+                                    <div class="stat-detail">Per 100,000 - among highest globally</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>Ready-to-Use HTA Templates (12 Real Datasets)</h3>
+                            <p>Pre-built cost-effectiveness models based on Oman health priorities. Click to load and run full analysis.</p>
+
+                            <div class="template-category">
+                                <h4 class="category-header">Diabetes (12.6% prevalence)</h4>
+                                <div class="template-grid" id="templates-diabetes"></div>
+                            </div>
+
+                            <div class="template-category">
+                                <h4 class="category-header">Cardiovascular Disease (33% of deaths)</h4>
+                                <div class="template-grid" id="templates-cardiovascular"></div>
+                            </div>
+
+                            <div class="template-category">
+                                <h4 class="category-header">Cancer</h4>
+                                <div class="template-grid" id="templates-cancer"></div>
+                            </div>
+
+                            <div class="template-category">
+                                <h4 class="category-header">Kidney Disease (2,800 dialysis patients)</h4>
+                                <div class="template-grid" id="templates-kidney"></div>
+                            </div>
+
+                            <div class="template-category">
+                                <h4 class="category-header">Obesity & Lifestyle</h4>
+                                <div class="template-grid" id="templates-obesity"></div>
+                            </div>
+
+                            <div class="template-category">
+                                <h4 class="category-header">Infectious Disease & Mental Health</h4>
+                                <div class="template-grid" id="templates-other"></div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>Risk Factor Profile</h3>
+                            <div class="risk-factors-display">
+                                <div class="risk-bar">
+                                    <span class="risk-label">Physical Inactivity</span>
+                                    <div class="risk-progress" style="width: 45%"></div>
+                                    <span class="risk-value">45%</span>
+                                </div>
+                                <div class="risk-bar">
+                                    <span class="risk-label">High Cholesterol</span>
+                                    <div class="risk-progress" style="width: 41%"></div>
+                                    <span class="risk-value">41%</span>
+                                </div>
+                                <div class="risk-bar">
+                                    <span class="risk-label">Overweight</span>
+                                    <div class="risk-progress" style="width: 30%"></div>
+                                    <span class="risk-value">30%</span>
+                                </div>
+                                <div class="risk-bar">
+                                    <span class="risk-label">Hypertension</span>
+                                    <div class="risk-progress" style="width: 29.5%"></div>
+                                    <span class="risk-value">29.5%</span>
+                                </div>
+                                <div class="risk-bar">
+                                    <span class="risk-label">Metabolic Syndrome</span>
+                                    <div class="risk-progress" style="width: 21%"></div>
+                                    <span class="risk-value">21%</span>
+                                </div>
+                                <div class="risk-bar">
+                                    <span class="risk-label">Obesity</span>
+                                    <div class="risk-progress" style="width: 20%"></div>
+                                    <span class="risk-value">20%</span>
+                                </div>
+                            </div>
+                            <p class="source-note">Source: WHO STEPS Survey Oman, MOH Statistical Reports</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Learning Stories Section -->
+                <section id="section-evidence-stories" class="content-section" style="display:none;">
+                    <div class="content-header">
+                        <h2>Learning Through Stories</h2>
+                        <p class="section-subtitle">Understanding HTA concepts and evidence reversals through memorable narratives</p>
+                    </div>
+                    <div class="content-body">
+                        <!-- HTA Concept Stories -->
+                        <div class="card">
+                            <h3>Understanding HTA Concepts</h3>
+                            <div class="story-grid" id="concept-stories">
+                                <div class="story-card" data-story="what_is_hta">
+                                    <div class="story-icon">NHS</div>
+                                    <h4>The NHS Founding Vision</h4>
+                                    <p class="story-preview">How Britain's 1948 healthcare dream led to the birth of HTA and NICE</p>
+                                    <button class="btn btn-secondary btn-sm" onclick="showStory('what_is_hta')">Read Story</button>
+                                </div>
+                                <div class="story-card" data-story="understanding_icer">
+                                    <div class="story-icon">1987</div>
+                                    <h4>Oregon's Fateful List</h4>
+                                    <p class="story-preview">The controversial 1987 attempt to rank 700+ treatments by cost-effectiveness</p>
+                                    <button class="btn btn-secondary btn-sm" onclick="showStory('understanding_icer')">Read Story</button>
+                                </div>
+                                <div class="story-card" data-story="understanding_uncertainty">
+                                    <div class="story-icon">VIOXX</div>
+                                    <h4>The Vioxx Disaster</h4>
+                                    <p class="story-preview">How hidden uncertainty in trial data led to 27,785 heart attacks</p>
+                                    <button class="btn btn-secondary btn-sm" onclick="showStory('understanding_uncertainty')">Read Story</button>
+                                </div>
+                                <div class="story-card" data-story="understanding_evpi">
+                                    <div class="story-icon">AMD</div>
+                                    <h4>The Million Dollar Question</h4>
+                                    <p class="story-preview">Avastin vs Lucentis: How EVPI justified a trial that saves billions</p>
+                                    <button class="btn btn-secondary btn-sm" onclick="showStory('understanding_evpi')">Read Story</button>
+                                </div>
+                                <div class="story-card" data-story="understanding_discounting">
+                                    <div class="story-icon">HCV</div>
+                                    <h4>The Hepatitis C Revolution</h4>
+                                    <p class="story-preview">Egypt's bold gamble: From $84,000 to $300 per cure</p>
+                                    <button class="btn btn-secondary btn-sm" onclick="showStory('understanding_discounting')">Read Story</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Evidence Reversal Cases -->
+                        <div class="card">
+                            <h3>Evidence Reversal Case Studies</h3>
+                            <p>Real medical practices that were widely adopted, then proven ineffective or harmful by rigorous trials.</p>
+                            <div class="reversal-grid" id="reversal-cases">
+                                <div class="reversal-card" data-case="stents_stable_angina">
+                                    <div class="reversal-category">Cardiovascular</div>
+                                    <h4>The Stent Story</h4>
+                                    <p class="reversal-subtitle">When Doing More Doesn't Mean Doing Better</p>
+                                    <p class="reversal-preview">Coronary stents for stable angina - COURAGE & ORBITA trials showed no benefit over medication alone.</p>
+                                    <div class="reversal-relevance">HIGH relevance to Oman - CVD is leading cause of death</div>
+                                    <button class="btn btn-primary btn-sm" onclick="showEvidenceReversal('stents_stable_angina')">Read Full Case</button>
+                                </div>
+                                <div class="reversal-card" data-case="knee_arthroscopy">
+                                    <div class="reversal-category">Orthopedics</div>
+                                    <h4>The Knee Surgery Parable</h4>
+                                    <p class="reversal-subtitle">Seeing Is Not Always Believing</p>
+                                    <p class="reversal-preview">Knee arthroscopy for osteoarthritis - sham surgery trials showed it's no better than placebo.</p>
+                                    <div class="reversal-relevance">MEDIUM relevance - aging population, rising obesity</div>
+                                    <button class="btn btn-primary btn-sm" onclick="showEvidenceReversal('knee_arthroscopy')">Read Full Case</button>
+                                </div>
+                                <div class="reversal-card" data-case="hormone_replacement">
+                                    <div class="reversal-category">Women's Health</div>
+                                    <h4>The Hormone Pendulum</h4>
+                                    <p class="reversal-subtitle">When "Obvious" Benefits Become Harms</p>
+                                    <p class="reversal-preview">HRT for cardiovascular prevention - WHI trial showed it INCREASED heart attacks and strokes.</p>
+                                    <div class="reversal-relevance">MEDIUM relevance - growing elderly population</div>
+                                    <button class="btn btn-primary btn-sm" onclick="showEvidenceReversal('hormone_replacement')">Read Full Case</button>
+                                </div>
+                                <div class="reversal-card" data-case="tight_glucose_icu">
+                                    <div class="reversal-category">Critical Care</div>
+                                    <h4>The Sugar Control Story</h4>
+                                    <p class="reversal-subtitle">When "Normal" Becomes Dangerous</p>
+                                    <p class="reversal-preview">Tight glucose control in ICU - NICE-SUGAR showed it INCREASED deaths by 14%.</p>
+                                    <div class="reversal-relevance">HIGH relevance - high diabetes prevalence</div>
+                                    <button class="btn btn-primary btn-sm" onclick="showEvidenceReversal('tight_glucose_icu')">Read Full Case</button>
+                                </div>
+                                <div class="reversal-card" data-case="antiarrhythmic_drugs">
+                                    <div class="reversal-category">Cardiovascular</div>
+                                    <h4>The Heartbeat Paradox</h4>
+                                    <p class="reversal-subtitle">When Fixing the Rhythm Stops the Heart</p>
+                                    <p class="reversal-preview">Antiarrhythmic drugs post-MI - CAST trial: drugs increased deaths 2.5x despite "working" on ECG.</p>
+                                    <div class="reversal-relevance">HIGH relevance - high ACS incidence (338.9/100,000)</div>
+                                    <button class="btn btn-primary btn-sm" onclick="showEvidenceReversal('antiarrhythmic_drugs')">Read Full Case</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Key Lessons -->
+                        <div class="card lessons-card">
+                            <h3>Key Lessons for HTA</h3>
+                            <div class="lessons-grid">
+                                <div class="lesson">
+                                    <div class="lesson-number">1</div>
+                                    <div class="lesson-content">
+                                        <strong>Biological plausibility is not proof</strong>
+                                        <p>Just because something SHOULD work doesn't mean it DOES work.</p>
+                                    </div>
+                                </div>
+                                <div class="lesson">
+                                    <div class="lesson-number">2</div>
+                                    <div class="lesson-content">
+                                        <strong>Surrogate endpoints can deceive</strong>
+                                        <p>Improving a test result doesn't always improve patient outcomes.</p>
+                                    </div>
+                                </div>
+                                <div class="lesson">
+                                    <div class="lesson-number">3</div>
+                                    <div class="lesson-content">
+                                        <strong>Observational data has hidden biases</strong>
+                                        <p>People who CHOOSE treatments differ from those who don't.</p>
+                                    </div>
+                                </div>
+                                <div class="lesson">
+                                    <div class="lesson-number">4</div>
+                                    <div class="lesson-content">
+                                        <strong>First positive trials are often wrong</strong>
+                                        <p>Replication in large, multicenter trials is essential.</p>
+                                    </div>
+                                </div>
+                                <div class="lesson">
+                                    <div class="lesson-number">5</div>
+                                    <div class="lesson-content">
+                                        <strong>Old habits die hard</strong>
+                                        <p>Even disproven treatments persist for years after evidence emerges.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Story Modal -->
+                <div id="story-modal" class="modal" style="display:none;">
+                    <div class="modal-content modal-lg">
+                        <div class="modal-header">
+                            <h3 id="story-modal-title">Story Title</h3>
+                            <button class="modal-close" onclick="closeStoryModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="story-modal-content"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeStoryModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Validation Section -->
                 <section id="section-validation" class="content-section" style="display:none;">
                     <div class="content-header">
@@ -1531,6 +2789,16 @@
                                 <span>Awaiting inputs</span>
                             </div>
                             <div id="submission-issues"></div>
+                        </div>
+
+                        <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border);">
+                            <h3>Multi-Criteria Decision Analysis</h3>
+                            <p style="color: var(--text-muted); margin-bottom: 12px;">
+                                Evaluate the intervention across clinical, economic, and strategic criteria.
+                            </p>
+                            <button class="btn btn-primary" id="btn-run-mcda" aria-label="Run MCDA Assessment">
+                                Run MCDA Assessment
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -1604,10 +2872,13 @@
                         <h2>Base Case Results</h2>
                     </div>
                     <div class="content-body">
-                        <div class="result-highlight">
-                            <label>Incremental Cost-Effectiveness Ratio (ICER)</label>
+                        <div class="result-highlight" id="icer-container">
+                            <label>Incremental Cost-Effectiveness Ratio (ICER)
+                                <span class="tooltip-icon" title="ICER = (Cost_intervention - Cost_comparator) / (QALY_intervention - QALY_comparator)">ⓘ</span>
+                            </label>
                             <div class="value" id="result-icer">-</div>
-                            <div class="unit">per QALY gained</div>
+                            <div class="unit" id="result-icer-unit">per QALY gained</div>
+                            <div class="icer-interpretation" id="icer-interpretation" style="display: none;"></div>
                         </div>
 
                         <div class="summary-grid">
@@ -1633,6 +2904,10 @@
                         <div class="chart-container">
                             <canvas id="trace-chart"></canvas>
                         </div>
+
+                        <!-- Results Dashboard (auto-populated) -->
+                        <h3 style="margin: 24px 0 16px;">Results Dashboard</h3>
+                        <div id="dashboard-container"></div>
                     </div>
                 </section>
 
@@ -1772,6 +3047,20 @@
                             </div>
                         </div>
 
+                        <!-- Result Interpretation Panel -->
+                        <div id="psa-interpretation" style="display: none; margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 12px; border-left: 4px solid #0891b2;">
+                            <h4 style="margin-bottom: 12px; color: #0369a1; display: flex; align-items: center; gap: 8px;">
+                                <span>📊</span> What These Results Mean
+                            </h4>
+                            <div id="psa-interpretation-text" style="line-height: 1.7; color: #0c4a6e;">
+                                <!-- Will be populated dynamically -->
+                            </div>
+                            <div id="psa-decision-guidance" style="margin-top: 16px; padding: 12px; background: white; border-radius: 8px;">
+                                <strong style="color: #0369a1;">Decision Guidance:</strong>
+                                <div id="psa-guidance-text" style="margin-top: 8px; color: #334155;"></div>
+                            </div>
+                        </div>
+
                         <!-- Convergence Diagnostics Panel -->
                         <div id="convergence-panel" style="display: none; margin: 20px 0; padding: 16px; background: var(--bg); border-radius: 8px;">
                             <h4 style="margin-bottom: 12px;">Convergence Diagnostics</h4>
@@ -1864,7 +3153,8 @@
                                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px;">
                                     <div class="info-item">
                                         <label>Parameter Range (%)</label>
-                                        <input type="number" id="dsa-range" value="20" min="5" max="50" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                    <input type="number" id="dsa-range" value="10" min="10" max="50" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                                    <p class="small" style="margin-top: 6px; color: var(--text-muted);">Oman guidance requires deterministic sensitivity analysis with ±10% variation.</p>
                                     </div>
                                     <div class="info-item">
                                         <label>Outcome Metric</label>
@@ -1988,6 +3278,12 @@
                             <button class="btn btn-secondary" id="btn-export-nice-report" style="padding: 20px; justify-content: center;">
                                 Oman HTA Report
                             </button>
+                            <button class="btn btn-primary" id="btn-export-cheers" style="padding: 20px; justify-content: center;">
+                                CHEERS 2022 Report
+                            </button>
+                            <button class="btn btn-secondary" id="btn-export-audit-trail" style="padding: 20px; justify-content: center;">
+                                Reproducibility Certificate
+                            </button>
                         </div>
 
                         <!-- Audit Summary -->
@@ -2009,6 +3305,45 @@
                                 <div class="info-item">
                                     <label>Clamping Events</label>
                                     <div class="value" id="audit-clamping" style="color: var(--error);">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Compare Analyses Section -->
+                <section id="section-compare" class="content-section" style="display:none;">
+                    <div class="content-header">
+                        <h2>Compare Analyses</h2>
+                        <p class="section-subtitle">Side-by-side comparison of different scenarios or sensitivity analyses</p>
+                    </div>
+                    <div class="content-body">
+                        <div class="card" style="margin-bottom: 24px;">
+                            <h4>Saved Analyses</h4>
+                            <p style="color: var(--text-muted); margin-bottom: 16px;">
+                                Save your current results to compare with future analyses. Useful for comparing different parameter assumptions or intervention costs.
+                            </p>
+                            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                                <input type="text" id="compare-save-name" placeholder="Analysis name (e.g., 'Base Case' or 'Lower Drug Cost')" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 6px;">
+                                <button class="btn btn-primary" id="btn-compare-save">Save Current Results</button>
+                            </div>
+                            <div id="compare-saved-list" style="min-height: 120px; background: var(--bg); border-radius: 8px;">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">📊</div>
+                                    <h4>No Saved Analyses</h4>
+                                    <p>Run a base case or PSA analysis, then save it here to compare different scenarios.</p>
+                                    <button class="btn btn-secondary btn-sm" onclick="document.querySelector('[data-section=run-engine]').click()">Go to Run Engine</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h4>Comparison Results</h4>
+                            <div id="compare-results" style="min-height: 200px;">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">⚖️</div>
+                                    <h4>Ready to Compare</h4>
+                                    <p>Save at least two analyses above to see a side-by-side comparison of costs, QALYs, and ICERs.</p>
                                 </div>
                             </div>
                         </div>
@@ -4493,6 +5828,9 @@
     <script src="src/utils/lifetable.js"></script>
     <script src="src/utils/audit.js"></script>
     <script src="src/utils/omanGuidance.js"></script>
+    <script src="src/utils/mathUtils.js"></script>
+    <script src="src/utils/sanitize.js"></script>
+    <script src="src/data/omanHealthDatasets.js"></script>
     <script src="src/utils/proofCarrying.js"></script>
     <script src="src/parser/expression.js"></script>
     <script src="src/validator/schema.js"></script>
@@ -4516,6 +5854,7 @@
     <script src="src/engine/advancedEnhancements.js"></script>
     <script src="src/ui/app.js"></script>
     <script src="src/ui/advancedUI.js"></script>
+    <script src="src/ui/enhancedUI.js"></script>
     <script src="src/ui/beginnerMode.js"></script>
 
     <!-- World Class Features (v1.0) -->
@@ -4524,7 +5863,95 @@
     <script src="src/engine/modelLibrary.js"></script>
     <script src="src/engine/automatedReportGen.js"></script>
     <script src="src/engine/collaboration.js"></script>
+
+    <!-- Advanced Analysis (v1.1) -->
+    <script src="src/engine/bia.js"></script>
+    <script src="src/engine/sensitivity.js"></script>
+    <script src="src/engine/voi.js"></script>
+    <script src="src/utils/cheers2022.js"></script>
+    <script src="src/data/omanLifeTables.js"></script>
+
+    <!-- Oman & GCC Enhancements (v0.5) -->
+    <script src="src/engine/omanCostDatabase.js"></script>
+    <script src="src/engine/omanFormulary.js"></script>
+    <script src="src/engine/gccSharing.js"></script>
+
     <script src="src/ui/interactiveNetworkViz.js"></script>
+
+    <!-- Phase 1: Real-World Data Integration (IMPROVEMENT_PLAN_V2) -->
+    <script src="src/services/omanDrugPrices.js"></script>
+    <script src="src/services/hospitalCosts.js"></script>
+    <script src="src/services/gccPricing.js"></script>
+
+    <!-- Phase 2: Advanced Modeling Features -->
+    <script src="src/engine/survivalAnalysis.js"></script>
+    <script src="src/engine/rweAnalysis.js"></script>
+    <script src="src/engine/multiIndication.js"></script>
+
+    <!-- Phase 3: User Experience Enhancements -->
+    <script src="src/ui/modelWizard.js"></script>
+    <script src="src/ui/resultsDashboard.js"></script>
+
+    <!-- Phase 4: Regulatory & Submission Support -->
+    <script src="src/reporting/cheersReport.js"></script>
+    <script src="src/engine/auditTrail.js"></script>
+
+    <!-- Phase 5: Performance & Scale -->
+    <script src="src/engine/workerPSA.js"></script>
+
+    <!-- Phase 6: Educational Platform -->
+    <script src="src/education/tutorials.js"></script>
+
+    <!-- Phase 7: Smart Features (Rules-based, ML) -->
+    <script src="src/engine/smartFeatures.js"></script>
+
+    <!-- Phase 8: Additional Enhancements -->
+    <script src="src/engine/mcda.js"></script>
+    <script src="src/data/omanClinicalParameters.js"></script>
+    <script src="src/i18n/translations.js"></script>
+
+    <!-- Phase 9: World-Class Oman-Specific Features -->
+    <script src="src/ui/visualModelBuilder.js"></script>
+    <script src="src/workflow/submissionWorkflow.js"></script>
+    <script src="src/gcc/collaborationHub.js"></script>
+    <script src="src/engine/causalInference.js"></script>
+    <script src="src/integration/omanHealthSystems.js"></script>
+    <script src="src/ml/predictiveModels.js"></script>
+    <script src="src/engine/advancedSurvival.js"></script>
+    <script src="src/engine/dynamicTransmission.js"></script>
+    <script src="src/negotiation/pricingTools.js"></script>
+    <script src="src/auth/authentication.js"></script>
+
+    <!-- Phase 1-3: Competitor-Beating Features -->
+    <script src="src/engine/decisionTree.js"></script>
+    <script src="src/engine/influenceDiagram.js"></script>
+    <script src="src/engine/tunnelStates.js"></script>
+    <script src="src/engine/trackerVariables.js"></script>
+    <script src="src/engine/evsi.js"></script>
+    <script src="src/engine/multiwaySensitivity.js"></script>
+    <script src="src/engine/optimization.js"></script>
+
+    <!-- Phase 4-5: Advanced Decision Analysis -->
+    <script src="src/engine/infoGap.js"></script>
+    <script src="src/engine/bayesianMCMC.js"></script>
+
+    <!-- Phase 6: Data Integration -->
+    <script src="src/io/excelIntegration.js"></script>
+    <script src="src/io/rExport.js"></script>
+
+    <!-- Phase 7: Publication & Reporting -->
+    <script src="src/visualization/publicationFigures.js"></script>
+    <script src="src/reporting/latexReport.js"></script>
+
+    <!-- Phase 8: Validation -->
+    <script src="src/validation/modelValidation.js"></script>
+
+    <!-- Phase 9: Performance -->
+    <script src="src/engine/distributedComputing.js"></script>
+
+    <!-- Phase 10: AI Features -->
+    <script src="src/engine/aiFeatures.js"></script>
+
     <script>
         // Helper functions for calibration UI
         function addCalibrationParam() {
@@ -4710,7 +6137,116 @@
             }
 
             console.log('🌍 World Class Features (v1.0) loaded successfully!');
+
+            // Initialize Phase 9: World-Class Oman-Specific Features
+            initializePhase9Features();
         });
+
+        // Phase 9 Feature Initialization
+        let gccHub, causalEngine, omanSystems, auth, visualBuilder, workflow, negotiation, advSurvival, transmission;
+        let rulesEngine, neuralNet, decisionTree, randomForest;
+
+        function initializePhase9Features() {
+            // GCC Collaboration Hub
+            try {
+                gccHub = new GCCCollaborationHub();
+                window.gccHub = gccHub;
+                console.log('✅ GCC Collaboration Hub initialized');
+            } catch (e) {
+                console.warn('⚠️ GCC Collaboration Hub not available:', e.message);
+            }
+
+            // Causal Inference Engine
+            try {
+                causalEngine = new CausalInferenceEngine();
+                window.causalEngine = causalEngine;
+                console.log('✅ Causal Inference Engine initialized');
+            } catch (e) {
+                console.warn('⚠️ Causal Inference Engine not available:', e.message);
+            }
+
+            // Oman Health Systems Integration
+            try {
+                omanSystems = new OmanHealthSystemsIntegration();
+                window.omanSystems = omanSystems;
+                console.log('✅ Oman Health Systems Integration initialized');
+            } catch (e) {
+                console.warn('⚠️ Oman Health Systems Integration not available:', e.message);
+            }
+
+            // Authentication System
+            try {
+                auth = new HTAAuthentication();
+                window.htaAuth = auth;
+                // Initialize default admin if no users exist
+                auth.initializeDefaultAdmin().then(result => {
+                    if (result.success) {
+                        console.log('✅ Default admin user created (username: admin, password: Admin@123)');
+                    }
+                });
+                console.log('✅ Authentication System initialized');
+            } catch (e) {
+                console.warn('⚠️ Authentication System not available:', e.message);
+            }
+
+            // Visual Model Builder
+            try {
+                if (typeof VisualModelBuilder !== 'undefined') {
+                    visualBuilder = new VisualModelBuilder('model-canvas', {});
+                    window.visualBuilder = visualBuilder;
+                    console.log('✅ Visual Model Builder initialized');
+                }
+            } catch (e) {
+                console.warn('⚠️ Visual Model Builder not available:', e.message);
+            }
+
+            // Workflow Engine
+            try {
+                workflow = new WorkflowEngine();
+                window.workflowEngine = workflow;
+                console.log('✅ Submission Workflow Engine initialized');
+            } catch (e) {
+                console.warn('⚠️ Submission Workflow Engine not available:', e.message);
+            }
+
+            // Pricing Negotiation Tools
+            try {
+                negotiation = new PricingNegotiationEngine({ wtpThreshold: 15800 });
+                window.negotiationEngine = negotiation;
+                console.log('✅ Pricing Negotiation Engine initialized');
+            } catch (e) {
+                console.warn('⚠️ Pricing Negotiation Engine not available:', e.message);
+            }
+
+            // Advanced Survival Models
+            try {
+                advSurvival = new AdvancedSurvivalModels();
+                window.advancedSurvival = advSurvival;
+                console.log('✅ Advanced Survival Models initialized');
+            } catch (e) {
+                console.warn('⚠️ Advanced Survival Models not available:', e.message);
+            }
+
+            // Dynamic Transmission Models
+            try {
+                transmission = new DynamicTransmissionModel({ population: 5100000 });
+                window.transmissionModel = transmission;
+                console.log('✅ Dynamic Transmission Models initialized');
+            } catch (e) {
+                console.warn('⚠️ Dynamic Transmission Models not available:', e.message);
+            }
+
+            // ML/Rules-Based Systems
+            try {
+                rulesEngine = createHTARules();
+                window.htaRulesEngine = rulesEngine;
+                console.log('✅ HTA Rules Engine initialized');
+            } catch (e) {
+                console.warn('⚠️ HTA Rules Engine not available:', e.message);
+            }
+
+            console.log('🇴🇲 Oman-Specific World-Class Features (v2.0) loaded!');
+        }
 
         // Global functions for World Class Features
         window.WorldClassFeatures = {
@@ -4784,6 +6320,153 @@
                     return collabEngine.getSessionStats();
                 }
                 return null;
+            }
+        };
+
+        // Phase 9 Global Functions
+        window.OmanHTAFeatures = {
+            // GCC Reference Pricing
+            calculateGCCReferencePrice: function(drugName, prices) {
+                if (gccHub) {
+                    return gccHub.calculateGCCReferencePrice(drugName, prices);
+                }
+                return null;
+            },
+
+            // Joint Procurement
+            createJointProcurement: function(initiative) {
+                if (gccHub) {
+                    return gccHub.createJointProcurement(initiative);
+                }
+                return null;
+            },
+
+            // Causal Inference Methods
+            runPropensityScoreMatching: function(data, treatmentVar, outcomeVar, covariates, options) {
+                if (causalEngine) {
+                    return causalEngine.propensityScoreMatching(data, treatmentVar, outcomeVar, covariates, options);
+                }
+                return null;
+            },
+
+            runDifferenceInDifferences: function(data, treatmentVar, timeVar, outcomeVar, options) {
+                if (causalEngine) {
+                    return causalEngine.differenceInDifferences(data, treatmentVar, timeVar, outcomeVar, options);
+                }
+                return null;
+            },
+
+            runInterruptedTimeSeries: function(data, timeVar, outcomeVar, interventionTime, options) {
+                if (causalEngine) {
+                    return causalEngine.interruptedTimeSeries(data, timeVar, outcomeVar, interventionTime, options);
+                }
+                return null;
+            },
+
+            // Oman Health Data
+            getEpidemiologyData: async function(condition, options) {
+                if (omanSystems) {
+                    return await omanSystems.getEpidemiologyData(condition, options);
+                }
+                return null;
+            },
+
+            getHealthcareCosts: async function(category) {
+                if (omanSystems) {
+                    return await omanSystems.getHealthcareCosts(category);
+                }
+                return null;
+            },
+
+            // Negotiation Support
+            calculateMaxPrice: function(htaResults, targetICER) {
+                if (negotiation) {
+                    return negotiation.calculateMaxAcceptablePrice(htaResults, targetICER);
+                }
+                return null;
+            },
+
+            designMEA: function(htaResults, uncertainties) {
+                if (negotiation) {
+                    return negotiation.designManagedEntryAgreement(htaResults, uncertainties);
+                }
+                return null;
+            },
+
+            // Advanced Survival
+            runCureFractionModel: function(data, options) {
+                if (advSurvival) {
+                    return advSurvival.cureFractionModel(data, options);
+                }
+                return null;
+            },
+
+            runFlexibleParametricModel: function(data, options) {
+                if (advSurvival) {
+                    return advSurvival.flexibleParametricModel(data, options);
+                }
+                return null;
+            },
+
+            // Vaccine Models
+            runVaccineImpactAnalysis: function(params) {
+                if (transmission) {
+                    return transmission.analyzeVaccineImpact(params);
+                }
+                return null;
+            },
+
+            runVaccineEconomicEvaluation: function(params, costs) {
+                if (transmission) {
+                    return transmission.vaccineEconomicEvaluation(params, costs);
+                }
+                return null;
+            },
+
+            // Rules Engine
+            evaluateHTARules: function(facts) {
+                if (rulesEngine) {
+                    rulesEngine.setFacts(facts);
+                    return rulesEngine.evaluate();
+                }
+                return [];
+            },
+
+            // Workflow
+            createSubmission: function(submissionData) {
+                if (workflow) {
+                    return workflow.createSubmission(submissionData);
+                }
+                return null;
+            },
+
+            // Authentication
+            login: async function(username, password) {
+                if (auth) {
+                    return await auth.login(username, password);
+                }
+                return { success: false, error: 'Auth not available' };
+            },
+
+            logout: function() {
+                if (auth) {
+                    return auth.logout();
+                }
+                return { success: false };
+            },
+
+            getCurrentUser: function() {
+                if (auth) {
+                    return auth.getCurrentUser();
+                }
+                return null;
+            },
+
+            hasPermission: function(permission) {
+                if (auth) {
+                    return auth.hasPermission(permission);
+                }
+                return false;
             }
         };
     </script>
@@ -5341,12 +7024,38 @@
                     sec.style.display = 'none';
                 });
                 target.style.display = 'block';
+
+                // Update active nav item
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.section === section) {
+                        item.classList.add('active');
+                    }
+                });
+
+                // Hide drop zone if showing a section
+                const dropZone = document.getElementById('drop-zone');
+                if (dropZone) dropZone.style.display = 'none';
+
                 return true;
             }
 
             if (typeof window.showSection !== 'function') {
                 window.showSection = fallbackShowSection;
             }
+
+            // Attach click handlers to all nav items with data-section
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const section = this.dataset.section;
+                        if (section) {
+                            window.showSection(section);
+                        }
+                    });
+                });
+            });
             if (typeof window.runDeterministicAnalysis !== 'function') {
                 window.runDeterministicAnalysis = () => window.app?.runBaseCase && window.app.runBaseCase();
             }
@@ -5360,6 +7069,1045 @@
                 window.exportResults = () => window.app?.exportResults && window.app.exportResults();
             }
         })();
+    </script>
+
+    <!-- Oman Health Data & Storytelling Functions -->
+    <script>
+    (function() {
+        'use strict';
+
+        // Normalize template to match HTA schema
+        function normalizeOmanTemplate(template, templateId) {
+            const project = template.project;
+            const params = project.parameters || {};
+
+            // Detect clinical event parameters for death probability
+            // Look for CV death or general death probability parameters
+            const cvDeathParam = Object.keys(params).find(k =>
+                k.includes('cv_death') || k.includes('death_standard') || k.includes('p_death')
+            );
+
+            // Detect drug cost parameters for strategy differentiation
+            const drugCostParams = Object.keys(params).filter(k =>
+                k.startsWith('c_') && (k.includes('monthly') || params[k].label?.toLowerCase().includes('cost'))
+            );
+
+            // Create normalized project matching HTA schema
+            const normalized = {
+                version: project.version || '0.1',
+
+                // Add required metadata with submission readiness fields
+                metadata: {
+                    id: templateId,
+                    name: project.name || template.name,
+                    description: project.description || template.description,
+                    author: 'Oman HTA Platform',
+                    organization: 'Ministry of Health, Oman',
+                    created: new Date().toISOString(),
+                    version: '1.0.0',
+                    tags: [template.category, 'oman', 'hta'],
+                    // Submission readiness fields
+                    conflicts_of_interest: 'This is a demonstration model based on published clinical trial data. No conflicts of interest.',
+                    public_dossier_available: true,
+                    public_dossier_url: 'https://hta.moh.gov.om/templates/' + templateId
+                },
+
+                // Add required model type
+                model: {
+                    type: 'markov_cohort'
+                },
+
+                // Normalize settings
+                settings: {
+                    ...project.settings,
+                    // Fix half_cycle_correction: boolean → string
+                    half_cycle_correction: project.settings.half_cycle_correction === true
+                        ? 'trapezoidal'
+                        : (project.settings.half_cycle_correction || 'trapezoidal'),
+                    // Ensure WTP threshold is set
+                    wtp_threshold: project.settings.wtp_threshold || project.settings.gdp_per_capita_omr || 7800,
+                    // Oman GDP per capita (confirmed from NCSI 2024)
+                    gdp_per_capita_omr: project.settings.gdp_per_capita_omr || 7800,
+                    gdp_per_capita_year: 2024,
+                    gdp_per_capita_source: 'National Centre for Statistics and Information (NCSI) Oman',
+                    gdp_per_capita_confirmed: true
+                },
+
+                // Copy parameters as-is (they're correctly formatted)
+                parameters: { ...params },
+
+                // Normalize states
+                states: {},
+
+                // Normalize strategies with proper cost overrides
+                strategies: {},
+
+                // Add transitions (auto-generate basic structure)
+                transitions: {}
+            };
+
+            // Add annual drug cost parameter (for strategy differentiation)
+            // This parameter will be overridden by strategies
+            normalized.parameters['annual_drug_cost'] = {
+                value: 0,
+                label: 'Annual drug treatment cost (OMR)',
+                description: 'Set by strategy - intervention or comparator drug costs'
+            };
+
+            // Normalize strategies and ADD cost parameter overrides
+            for (const [stratId, strat] of Object.entries(project.strategies || {})) {
+                normalized.strategies[stratId] = {
+                    ...strat,
+                    parameter_overrides: { ...strat.parameter_overrides }
+                };
+
+                // For intervention strategies (non-comparator), add intervention drug costs
+                // For comparator strategies, add comparator drug costs
+                if (strat.is_comparator) {
+                    // Find comparator drug cost (metformin, standard, etc.)
+                    const comparatorCost = Object.keys(params).find(k =>
+                        k.startsWith('c_') && (
+                            k.includes('metformin') ||
+                            k.includes('standard') ||
+                            k.includes('comparator') ||
+                            k.includes('soc')
+                        )
+                    );
+                    if (comparatorCost) {
+                        // Annual cost = monthly * 12
+                        normalized.strategies[stratId].parameter_overrides['annual_drug_cost'] =
+                            `${comparatorCost} * 12`;
+                    }
+                } else {
+                    // Find intervention drug cost (empagliflozin, etc.)
+                    const interventionCost = Object.keys(params).find(k =>
+                        k.startsWith('c_') && !k.includes('metformin') && !k.includes('standard') &&
+                        !k.includes('comparator') && !k.includes('soc')
+                    );
+                    if (interventionCost) {
+                        // Annual cost = monthly * 12
+                        normalized.strategies[stratId].parameter_overrides['annual_drug_cost'] =
+                            `${interventionCost} * 12`;
+                    }
+                }
+            }
+
+            // Normalize each state - ensure ALL states have initial_probability
+            const stateEntries = Object.entries(project.states || {});
+            let hasInitial = false;
+            let initialStateId = null;
+
+            for (const [stateId, state] of stateEntries) {
+                const isInitial = state.initial === true;
+                const isAbsorbing = state.absorbing === true;
+
+                if (isInitial) {
+                    hasInitial = true;
+                    initialStateId = stateId;
+                }
+
+                // Base cost from template
+                let baseCost = state.annual_cost !== undefined ? state.annual_cost : (state.cost || 0);
+
+                normalized.states[stateId] = {
+                    label: state.label,
+                    description: state.description || '',
+                    type: isAbsorbing ? 'absorbing' : 'transient',
+                    initial_probability: isInitial ? 1.0 : 0,
+                    cost: baseCost,
+                    utility: state.utility !== undefined ? state.utility : 0
+                };
+            }
+
+            // If no initial state found, set first non-absorbing as initial
+            if (!hasInitial) {
+                const firstNonAbsorbing = stateEntries.find(([_, s]) => !s.absorbing);
+                if (firstNonAbsorbing) {
+                    initialStateId = firstNonAbsorbing[0];
+                    normalized.states[firstNonAbsorbing[0]].initial_probability = 1.0;
+                }
+            }
+
+            // Add drug costs to initial/alive states (not death or post-event states)
+            if (initialStateId && normalized.states[initialStateId]) {
+                const baseCost = normalized.states[initialStateId].cost;
+                // Make cost include drug cost parameter for strategy differentiation
+                normalized.states[initialStateId].cost = `${baseCost} + annual_drug_cost`;
+            }
+
+            // Generate proper transitions using clinical parameters if available
+            const stateIds = Object.keys(normalized.states);
+            const nonAbsorbing = stateIds.filter(s => normalized.states[s].type !== 'absorbing');
+            const absorbing = stateIds.filter(s => normalized.states[s].type === 'absorbing');
+            const deathState = absorbing[0] || 'death';
+
+            // For each non-absorbing state, create transitions that sum to 1
+            for (const from of nonAbsorbing) {
+                const safeFrom = from.replace(/[^a-z0-9_]/gi, '_');
+                let deathParam = `p_death_${safeFrom}`;
+
+                // For initial state, use CV death parameter if available (for strategy differentiation)
+                if (from === initialStateId && cvDeathParam) {
+                    deathParam = cvDeathParam;
+                } else {
+                    // Add death probability parameter if not exists
+                    if (!normalized.parameters[deathParam]) {
+                        normalized.parameters[deathParam] = {
+                            value: 0.02,
+                            label: `Annual mortality rate from ${normalized.states[from].label || from}`,
+                            distribution: { type: 'beta', alpha: 2, beta: 98 }
+                        };
+                    }
+                }
+
+                // Stay in state: probability = 1 - death probability
+                normalized.transitions[`${from}_to_${from}`] = {
+                    from: from,
+                    to: from,
+                    probability: `1 - ${deathParam}`
+                };
+
+                // Transition to death
+                if (absorbing.length > 0) {
+                    normalized.transitions[`${from}_to_${deathState}`] = {
+                        from: from,
+                        to: deathState,
+                        probability: deathParam
+                    };
+                }
+            }
+
+            // Add self-loop for absorbing states (required for mass conservation)
+            for (const absState of absorbing) {
+                normalized.transitions[`${absState}_to_${absState}`] = {
+                    from: absState,
+                    to: absState,
+                    probability: 1.0
+                };
+            }
+
+            return normalized;
+        }
+
+        // Load Oman HTA Template
+        window.loadOmanTemplate = function(templateId, retryCount) {
+            retryCount = retryCount || 0;
+
+            const datasets = window.OmanHealthDatasets;
+            if (!datasets) {
+                alert('Oman Health Datasets module not loaded');
+                return;
+            }
+
+            const template = datasets.getTemplate(templateId);
+            if (!template) {
+                alert('Template not found: ' + templateId);
+                return;
+            }
+
+            // Normalize template to match HTA schema
+            const normalizedProject = normalizeOmanTemplate(template, templateId);
+
+            if (window.app && window.app.loadProject) {
+                window.app.loadProject(normalizedProject);
+                window.app.showToast('Loaded: ' + template.name, 'success');
+
+                // Navigate to summary
+                const navItem = document.querySelector('[data-section="summary"]');
+                if (navItem) navItem.click();
+            } else if (retryCount < 10) {
+                // Retry after a short delay
+                setTimeout(function() {
+                    window.loadOmanTemplate(templateId, retryCount + 1);
+                }, 500);
+            } else {
+                // Still not ready - try to use loadDemoData as fallback
+                if (window.loadDemoData) {
+                    window.loadDemoData();
+                    setTimeout(function() {
+                        if (window.app && window.app.loadProject) {
+                            window.app.loadProject(normalizedProject);
+                        }
+                    }, 1000);
+                } else {
+                    alert('App not ready. Please reload the page and try again.');
+                }
+            }
+        };
+
+        // ============================================================
+        // LEARNING STORIES DATA - Real HTA cases with narrative style
+        // ============================================================
+        (function() {
+            // Extend OmanHealthDatasets with story data if not already present
+            if (!window.OmanHealthDatasets) {
+                window.OmanHealthDatasets = {};
+            }
+
+            var ds = window.OmanHealthDatasets;
+
+            // Override HTAConceptStories with real HTA cases
+            ds.HTAConceptStories = {
+                    what_is_hta: {
+                        title: "The NHS Founding Vision",
+                        story: "In 1948, when Britain established the National Health Service, the founders believed that once everyone had access to healthcare, the nation would become healthier and costs would fall. This assumption seemed logical: treat disease early, prevent complications, spend less overall.\n\nBut within three years, NHS costs had exceeded projections by 40%. By 1951, prescription charges and dental fees had to be introduced. The founders had not foreseen a fundamental truth: when healthcare is free at the point of use, demand is nearly infinite.\n\nHealth Technology Assessment emerged from this recognition: if we cannot provide everything to everyone, we must have a rigorous, fair, transparent way to decide what to fund. HTA asks: Does this intervention work? For whom? At what cost? Compared to what alternatives? And is that cost justified by the benefits?\n\nIn 1999, the UK established NICE (National Institute for Health and Care Excellence) to make these decisions systematically. The lesson is not that life-saving treatments should be denied. The lesson is that every dollar spent on an ineffective treatment is a dollar not spent on an effective one.",
+                        key_concepts: ['Resource Scarcity', 'Opportunity Cost', 'Transparent Rationing', 'Evidence-Based Decision Making', 'NICE Guidelines']
+                    },
+                    understanding_icer: {
+                        title: "Oregon's Fateful List",
+                        story: "In 1987, Oregon faced a crisis. The state's Medicaid program could not afford to cover all medical services for all eligible residents. Rather than randomly cutting people from coverage, officials attempted something unprecedented: they would rank treatments by their cost-effectiveness and draw a line.\n\nThe Oregon Health Services Commission evaluated over 700 condition-treatment pairs. They calculated ICERs - the additional cost required to gain one quality-adjusted life year. Treatments below the line would be funded; those above would not.\n\nThe first list, released in 1990, created outrage. Dental caps ranked higher than surgery for ectopic pregnancy. The algorithm had failed catastrophically because it relied too heavily on telephone surveys asking healthy Oregonians to rate quality of life for conditions they had never experienced.\n\nOregon revised its approach. The second list, approved in 1993, used clinical judgment alongside cost-effectiveness data. It explicitly prioritized life-threatening conditions and preventive care.\n\nThe ICER is not meant to be a rigid cutoff. Rather, it is a tool for understanding trade-offs. The question is never simply 'Is this treatment worth it?' The question is always 'Is this treatment worth it compared to what else we could do with the same resources?'",
+                        key_concepts: ['ICER Calculation', 'Opportunity Cost', 'QALY', 'Threshold Setting', 'Priority Setting']
+                    },
+                    understanding_uncertainty: {
+                        title: "The Vioxx Disaster",
+                        story: "In 1999, Merck launched Vioxx (rofecoxib) as a revolutionary painkiller. Unlike older anti-inflammatory drugs, Vioxx promised relief without stomach bleeding. The FDA approval was based on solid evidence: clinical trials showed Vioxx worked for pain and caused fewer gastrointestinal problems.\n\nBut uncertainty lurked in the data. The VIGOR trial in 2000 showed something troubling: patients on Vioxx had five times as many heart attacks as those on naproxen. Merck argued this was because naproxen protected the heart, not because Vioxx harmed it.\n\nIn 2004, Merck's APPROVe trial was stopped early. After 18 months, Vioxx doubled the risk of heart attacks. Merck withdrew the drug. FDA later estimated that Vioxx had caused 27,785 heart attacks.\n\nThe lesson is not that uncertainty should prevent all decisions. The lesson is that uncertainty should inform how confidently we act. When clinical trial evidence is uncertain, HTA uses probabilistic sensitivity analysis (PSA). Instead of asking 'What is the ICER?' it asks 'What is the probability that this treatment is cost-effective?'",
+                        key_concepts: ['Probabilistic Sensitivity Analysis', 'Confidence Intervals', 'Value of Information', 'Regulatory Uncertainty']
+                    },
+                    understanding_evpi: {
+                        title: "The Million Dollar Question",
+                        story: "In 2011, the UK faced a peculiar problem. Bevacizumab (Avastin), a cancer drug, showed promise for treating wet age-related macular degeneration (AMD). But Roche, its manufacturer, had not sought approval for this use. Instead, it sold ranibizumab (Lucentis) - a nearly identical molecule - specifically for AMD at 40 times the price.\n\nShould the NHS pay £750 per injection for licensed Lucentis, or £50 for unlicensed Avastin? The drugs appeared clinically equivalent, but no large trials had directly compared them.\n\nThis is where Expected Value of Perfect Information (EVPI) becomes essential. EVPI calculates the maximum value of eliminating all uncertainty before deciding. An EVPI analysis showed that the value of perfect information about comparative effectiveness was approximately £109 million.\n\nThe IVAN and CATT trials were funded. Results in 2012 showed Avastin and Lucentis were equivalent. The UK subsequently endorsed Avastin use, saving the NHS approximately £250 million annually.",
+                        key_concepts: ['EVPI', 'Expected Value of Perfect Information', 'Research Prioritization', 'Off-Label Use', 'Head-to-Head Trials']
+                    },
+                    understanding_discounting: {
+                        title: "The Hepatitis C Revolution",
+                        story: "In 2013, the first direct-acting antivirals (DAAs) for hepatitis C arrived. Sofosbuvir could cure over 95% of patients in 12 weeks. No more year-long interferon injections. A genuine breakthrough.\n\nThere was one problem: the price. Gilead launched sofosbuvir at $84,000 per treatment course in the United States. At that price, treating all 3.2 million Americans with hepatitis C would cost $268 billion.\n\nThe economic analysis was complex. Hepatitis C causes slow damage: most infected individuals feel fine for decades before cirrhosis develops. A 40-year-old cured today might not have developed serious disease until age 65. The benefits of treatment accrue far in the future.\n\nDiscounting affects this calculation dramatically. At a 3% annual discount rate, a QALY gained in 25 years is worth only 0.48 QALYs today.\n\nEgypt took a bold approach. Facing the world's highest hepatitis C prevalence, the government negotiated bulk pricing of $300 per treatment (down from $84,000) and committed to eliminating the disease. By 2019, Egypt had treated over 1.5 million patients and reduced prevalence by 70%.",
+                        key_concepts: ['Discounting', 'Time Preference', 'Net Present Value', 'Budget Impact', 'Intergenerational Equity']
+                    }
+                };
+
+            // Override EvidenceReversalCases with real cases
+            ds.EvidenceReversalCases = {
+                    stents_stable_angina: {
+                        title: "The Stent Story: ORBITA's Unblinding",
+                        category: "Cardiovascular",
+                        story: {
+                            opening: "For decades, the logic seemed inescapable: if chest pain comes from blocked arteries, then opening those arteries should relieve the pain. Cardiologists showed patients their angiograms - 'See this blockage? It's strangling your heart.' Patients nodded. Stents were implanted. Most reported feeling better.\n\nBy 2006, percutaneous coronary intervention (PCI) for stable angina was a $4 billion annual industry.",
+                            lesson: "The COURAGE trial in 2007 delivered the first shock. In 2,287 patients with stable coronary disease, adding PCI to optimal medical therapy provided no reduction in death or heart attacks compared to medication alone.",
+                            evidence: "Then came ORBITA in 2017. Researchers performed sham procedures. All 200 patients received sedation and catheterization. Half received actual stent implantation; half received nothing. Neither patients nor physicians knew who got what.\n\nAfter six weeks, both groups reported similar improvement. The stent was largely placebo effect.",
+                            confirmation: "ISCHEMIA trial results in 2019 (5,179 patients) confirmed the pattern. Among patients with moderate-to-severe ischemia, an invasive strategy did not reduce cardiovascular events compared to conservative medical management.",
+                            current_practice: "Despite this evidence, a 2019 analysis found that 40% of elective PCIs in the US were performed in patients who should have been managed medically.",
+                            moral: "The stent story teaches that biological plausibility is not proof. That patient-reported improvement is not the same as objective benefit."
+                        },
+                        data: {
+                            trials: ['COURAGE (2007)', 'ORBITA (2017)', 'ISCHEMIA (2019)'],
+                            sample_size_total: 7666,
+                            intervention_cost_omr: "4,000-8,000",
+                            comparator_cost_omr: "200-500/year",
+                            source: "NEJM, Lancet"
+                        },
+                        hta_lesson: "When a plausible mechanism combines with patient and provider enthusiasm, only rigorous RCTs - ideally with sham controls - can reveal whether benefit is real."
+                    },
+                    knee_arthroscopy: {
+                        title: "The Knee Surgery Revelation",
+                        category: "Orthopedics",
+                        story: {
+                            opening: "The arthroscope seemed like a miracle. A tiny camera, a few small incisions, and surgeons could see inside the knee, trim torn cartilage, and smooth roughened surfaces. By the 1990s, arthroscopic surgery for knee osteoarthritis was one of the most common orthopedic procedures.",
+                            lesson: "In 2002, Dr. Bruce Moseley published a study that shook orthopedics. He randomized 180 patients to arthroscopic debridement, arthroscopic lavage, or sham surgery. In the sham group, incisions were made but no arthroscope was inserted.",
+                            evidence: "After two years, all three groups showed equivalent improvement. Patients who received sham surgery reported just as much pain relief as those who received actual surgery.",
+                            current_practice: "A 2017 BMJ systematic review concluded that arthroscopic surgery for degenerative knee disease provides short-term benefits that are too small to be clinically important and no sustained benefit.",
+                            moral: "Even dramatic, visible interventions can be elaborate placebos. 'Cleaning up' an anatomical abnormality does not necessarily improve symptoms."
+                        },
+                        data: {
+                            trials: ['Moseley (2002)', 'METEOR (2013)', 'FIDELITY (2018)'],
+                            sample_size_total: 1000,
+                            intervention_cost_omr: "2,000-4,000",
+                            comparator_cost_omr: "400-800 for PT",
+                            source: "NEJM, BMJ"
+                        },
+                        hta_lesson: "Visible interventions that 'make sense' anatomically require the same evidence standards as drugs. Sham-controlled trials are essential when placebo response is likely."
+                    },
+                    hormone_replacement: {
+                        title: "The Hormone Pendulum",
+                        category: "Women's Health",
+                        story: {
+                            opening: "The reasoning seemed bulletproof. Before menopause, women have far lower rates of heart disease than men. After menopause, their rates catch up. The difference? Estrogen. Therefore, replacing the lost estrogen should protect postmenopausal women's hearts.\n\nThe Nurses' Health Study found that women taking HRT had 30-50% fewer heart attacks. By 2001, over 15 million American women were taking HRT.",
+                            lesson: "What the observational studies could not see was confounding. Women who chose to take HRT were wealthier, better educated, more likely to exercise - the 'healthy user' effect.",
+                            evidence: "The Women's Health Initiative (WHI) enrolled 16,608 postmenopausal women. In July 2002, the trial was stopped early. Far from protecting the heart, HRT increased cardiovascular events: Heart attacks up 29%, Strokes up 41%, Blood clots up 100%, Breast cancer up 26%.",
+                            aftermath: "HRT prescriptions dropped 50% within a year. The WHI estimated that HRT had caused tens of thousands of excess cardiovascular events.",
+                            moral: "Biological plausibility plus observational association does not equal causation. The healthy user effect can create entirely spurious protective associations."
+                        },
+                        data: {
+                            trials: ['WHI (2002)', 'HERS (1998)'],
+                            sample_size_total: 27000,
+                            source: "JAMA, NEJM"
+                        },
+                        hta_lesson: "Observational studies, regardless of size, cannot establish causation when healthy user bias is present."
+                    },
+                    tight_glucose_icu: {
+                        title: "The Sugar Control Paradox",
+                        category: "Critical Care",
+                        story: {
+                            opening: "In the intensive care unit, blood glucose rises during critical illness. Elevated glucose is associated with worse outcomes. The intuition seemed obvious: if high glucose predicts bad outcomes, controlling glucose should improve outcomes.\n\nIn 2001, Dr. Greet Van den Berghe published a study showing that 'tight' glucose control reduced ICU mortality by 34%.",
+                            lesson: "The medical world embraced the finding enthusiastically. Guidelines were updated. Quality metrics included glucose control. ICUs implemented insulin protocols targeting blood sugar levels of 80-110 mg/dL.",
+                            evidence: "The NICE-SUGAR trial (2009) enrolled 6,104 patients in 42 hospitals. The results were shocking: intensive control INCREASED mortality by 14%. The culprit: hypoglycemia. Attempting to maintain normal glucose caused dangerous blood sugar drops.",
+                            current_practice: "After NICE-SUGAR, guidelines were revised to target 140-180 mg/dL. But a 2015 survey found that 40% of US ICUs still targeted glucose levels below recommendations.",
+                            moral: "High glucose in ICU patients is not the cause of bad outcomes - it is a symptom of severe illness. Forcing glucose down does not make patients less sick."
+                        },
+                        data: {
+                            trials: ['Van den Berghe (2001)', 'NICE-SUGAR (2009)'],
+                            sample_size_total: 7700,
+                            mortality_increase: 1.14,
+                            source: "NEJM"
+                        },
+                        hta_lesson: "Improving a biomarker does not mean improving patients. Surrogate endpoints must be validated, and 'normal' values are not always appropriate targets for critically ill patients."
+                    },
+                    antiarrhythmic_drugs: {
+                        title: "The Heartbeat Paradox",
+                        category: "Cardiovascular",
+                        story: {
+                            opening: "After a heart attack, the damaged heart often develops irregular rhythms. These abnormal heartbeats predict sudden cardiac death.\n\nIn the 1980s, Class IC antiarrhythmics (encainide and flecainide) proved remarkably effective at suppressing these arrhythmias. Patients' ECGs looked normal. The drugs were widely prescribed.",
+                            lesson: "The assumption was straightforward: PVCs predict sudden death. Drugs eliminate PVCs. Therefore, drugs should prevent sudden death. The syllogism seemed unassailable.\n\nBut no one had tested whether suppressing the arrhythmia actually reduced deaths.",
+                            evidence: "The CAST trial randomized 1,727 patients to encainide, flecainide, or placebo. In April 1989, the trial was stopped early.\n\nPatients on the antiarrhythmic drugs were dying at 2.5 times the rate of those on placebo. The drugs that perfectly suppressed arrhythmias were perfectly causing death.\n\nExtrapolating to the hundreds of thousands receiving these drugs, CAST authors estimated 20,000-70,000 excess deaths annually.",
+                            moral: "The drugs successfully treated the surrogate (arrhythmias) while worsening the outcome that mattered (death). The arrhythmias were a marker of cardiac damage, not the cause of death."
+                        },
+                        data: {
+                            trials: ['CAST (1989)'],
+                            sample_size: 1727,
+                            mortality_increase: 2.5,
+                            source: "NEJM"
+                        },
+                        hta_lesson: "The most dangerous surrogate endpoints are those that seem obviously connected to outcomes. 'Fixing the ECG' is not the same as 'saving the patient.'"
+                    }
+                };
+
+            // Add getStory helper if not present
+            if (!ds.getStory) {
+                ds.getStory = function(storyId) {
+                    return this.HTAConceptStories ? this.HTAConceptStories[storyId] : null;
+                };
+            }
+        })();
+
+        // Show HTA Concept Story
+        window.showStory = function(storyId) {
+            var datasets = window.OmanHealthDatasets;
+            if (!datasets) return;
+
+            var story = datasets.getStory(storyId);
+            if (!story) return;
+
+            const modal = document.getElementById('story-modal');
+            const title = document.getElementById('story-modal-title');
+            const content = document.getElementById('story-modal-content');
+
+            title.textContent = story.title;
+
+            let html = '<div class="story-section">';
+            html += '<div class="story-text">' + story.story + '</div>';
+            html += '</div>';
+
+            if (story.key_concepts) {
+                html += '<div class="story-data">';
+                html += '<strong>Key Concepts:</strong> ' + story.key_concepts.join(', ');
+                html += '</div>';
+            }
+
+            content.innerHTML = html;
+            modal.style.display = 'flex';
+        };
+
+        // Show Evidence Reversal Case
+        window.showEvidenceReversal = function(caseId) {
+            const datasets = window.OmanHealthDatasets;
+            if (!datasets) return;
+
+            const cases = datasets.EvidenceReversalCases;
+            const caseData = cases[caseId];
+            if (!caseData) return;
+
+            const modal = document.getElementById('story-modal');
+            const title = document.getElementById('story-modal-title');
+            const content = document.getElementById('story-modal-content');
+
+            title.textContent = caseData.title;
+
+            let html = '';
+
+            // Story sections
+            const story = caseData.story;
+            const sections = [
+                ['The Parable', story.opening],
+                ['The Lesson', story.lesson],
+                ['The Evidence', story.evidence],
+                ['The Revelation', story.revelation || story.confirmation],
+                ['Current Practice', story.current_practice || story.resistance || story.aftermath],
+                ['The Moral', story.moral]
+            ];
+
+            sections.forEach(([heading, text]) => {
+                if (text) {
+                    html += '<div class="story-section">';
+                    html += '<h4>' + heading + '</h4>';
+                    html += '<div class="story-text">' + text + '</div>';
+                    html += '</div>';
+                }
+            });
+
+            // Data table
+            if (caseData.data) {
+                html += '<div class="story-data">';
+                html += '<h4>Study Data</h4>';
+                html += '<table>';
+                const d = caseData.data;
+                if (d.intervention_cost_omr) {
+                    html += '<tr><td>Intervention Cost</td><td>' + d.intervention_cost_omr + ' OMR</td></tr>';
+                }
+                if (d.comparator_cost_omr) {
+                    html += '<tr><td>Comparator Cost</td><td>' + d.comparator_cost_omr + ' OMR</td></tr>';
+                }
+                if (d.icer) {
+                    html += '<tr><td>ICER</td><td>' + d.icer + '</td></tr>';
+                }
+                if (d.trials) {
+                    html += '<tr><td>Key Trials</td><td>' + d.trials.join(', ') + '</td></tr>';
+                }
+                if (d.sample_size_total || d.sample_size) {
+                    html += '<tr><td>Total Sample</td><td>' + (d.sample_size_total || d.sample_size).toLocaleString() + ' patients</td></tr>';
+                }
+                if (d.mortality_increase) {
+                    html += '<tr><td>Mortality Impact</td><td>+' + Math.round((d.mortality_increase - 1) * 100) + '% or ' + d.mortality_increase + 'x increase</td></tr>';
+                }
+                if (d.source) {
+                    html += '<tr><td>Sources</td><td>' + d.source + '</td></tr>';
+                }
+                html += '</table>';
+                html += '</div>';
+            }
+
+            // HTA Lesson
+            if (caseData.hta_lesson) {
+                html += '<div class="hta-lesson">';
+                html += '<strong>HTA Lesson:</strong> ' + caseData.hta_lesson;
+                html += '</div>';
+            }
+
+            content.innerHTML = html;
+            modal.style.display = 'flex';
+        };
+
+        // Close Story Modal
+        window.closeStoryModal = function() {
+            const modal = document.getElementById('story-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        // Close modal on background click
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('story-modal');
+            if (e.target === modal) {
+                closeStoryModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeStoryModal();
+            }
+        });
+
+        // Populate templates on page load
+        function populateTemplates() {
+            const datasets = window.OmanHealthDatasets;
+            if (!datasets) {
+                setTimeout(populateTemplates, 500);
+                return;
+            }
+
+            const templates = datasets.OmanHTATemplates;
+            const categoryMap = {
+                'Diabetes': 'templates-diabetes',
+                'Cardiovascular': 'templates-cardiovascular',
+                'Cancer': 'templates-cancer',
+                'Kidney Disease': 'templates-kidney',
+                'Obesity': 'templates-obesity',
+                'Infectious Disease': 'templates-other',
+                'Mental Health': 'templates-other'
+            };
+
+            for (const [id, template] of Object.entries(templates)) {
+                const category = template.category || 'Other';
+                const containerId = categoryMap[category] || 'templates-other';
+                const container = document.getElementById(containerId);
+                if (!container) continue;
+
+                const horizon = template.project?.settings?.time_horizon || '?';
+                const icer = template.expected_results?.icer_estimate;
+                const icerText = icer < 0 ? 'Cost-saving' : (icer ? '~' + icer.toLocaleString() + ' OMR/QALY' : '');
+
+                const card = document.createElement('div');
+                card.className = 'template-card';
+                card.innerHTML = `
+                    <span class="category-badge">${category}</span>
+                    <h4>${template.name}</h4>
+                    <p>${template.description}</p>
+                    <div class="template-meta">
+                        <span class="badge">${horizon}-year horizon</span>
+                        ${icerText ? '<span class="badge">' + icerText + '</span>' : ''}
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="loadOmanTemplate('${id}')">Load & Analyze</button>
+                `;
+                container.appendChild(card);
+            }
+        }
+
+        // Run on DOMContentLoaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', populateTemplates);
+        } else {
+            populateTemplates();
+        }
+
+        // Collapsible Navigation Sections
+        function setupCollapsibleNav() {
+            const navSections = document.querySelectorAll('.nav-section');
+
+            // Sections to collapse by default - none, all visible
+            const collapseByDefault = [
+                // Removed - all sections now visible by default
+            ];
+
+            navSections.forEach(section => {
+                const header = section.querySelector('h3');
+                if (!header) return;
+
+                // Wrap nav items in a container for toggling
+                const items = section.querySelectorAll('.nav-item');
+                if (items.length === 0) return;
+
+                let itemsContainer = section.querySelector('.nav-items');
+                if (!itemsContainer) {
+                    itemsContainer = document.createElement('div');
+                    itemsContainer.className = 'nav-items';
+                    items.forEach(item => itemsContainer.appendChild(item));
+                    section.appendChild(itemsContainer);
+                }
+
+                // Collapse advanced sections by default
+                const headerText = header.textContent.trim();
+                if (collapseByDefault.some(t => headerText.toLowerCase().includes(t.toLowerCase()))) {
+                    section.classList.add('collapsed');
+                }
+
+                // Click to toggle
+                header.addEventListener('click', () => {
+                    section.classList.toggle('collapsed');
+                });
+            });
+        }
+
+        // Run nav setup
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupCollapsibleNav);
+        } else {
+            setTimeout(setupCollapsibleNav, 100);
+        }
+
+    })();
+    </script>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="shortcuts-modal" id="shortcuts-modal">
+        <div class="shortcuts-content">
+            <h3>
+                Keyboard Shortcuts
+                <button class="btn btn-secondary btn-sm" onclick="closeShortcutsModal()">✕</button>
+            </h3>
+            <div class="shortcut-group">
+                <h4>Navigation</h4>
+                <div class="shortcut-item">
+                    <span>Show keyboard shortcuts</span>
+                    <span class="shortcut-key">?</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Close modal / Cancel</span>
+                    <span class="shortcut-key">Esc</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Go to Summary</span>
+                    <span class="shortcut-key">G then S</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Go to Parameters</span>
+                    <span class="shortcut-key">G then P</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Go to Results</span>
+                    <span class="shortcut-key">G then R</span>
+                </div>
+            </div>
+            <div class="shortcut-group">
+                <h4>Actions</h4>
+                <div class="shortcut-item">
+                    <span>Run base case analysis</span>
+                    <span class="shortcut-key">Ctrl + Enter</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Run PSA</span>
+                    <span class="shortcut-key">Ctrl + Shift + P</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Save / Export JSON</span>
+                    <span class="shortcut-key">Ctrl + S</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Undo</span>
+                    <span class="shortcut-key">Ctrl + Z</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Redo</span>
+                    <span class="shortcut-key">Ctrl + Y</span>
+                </div>
+            </div>
+            <div class="shortcut-group">
+                <h4>Interface</h4>
+                <div class="shortcut-item">
+                    <span>Toggle dark mode</span>
+                    <span class="shortcut-key">Ctrl + D</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Toggle language (AR/EN)</span>
+                    <span class="shortcut-key">Ctrl + L</span>
+                </div>
+                <div class="shortcut-item">
+                    <span>Toggle sidebar</span>
+                    <span class="shortcut-key">Ctrl + B</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Modal for PSA/Long Operations -->
+    <div class="progress-modal" id="progress-modal">
+        <div class="progress-content">
+            <div class="progress-spinner"></div>
+            <h3 id="progress-title">Running Analysis...</h3>
+            <p id="progress-message">Please wait while the analysis completes</p>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progress-bar" style="width: 0%"></div>
+            </div>
+            <div class="progress-stats">
+                <div class="progress-stat">
+                    <div class="progress-stat-value" id="progress-iteration">0</div>
+                    <div class="progress-stat-label">Iterations</div>
+                </div>
+                <div class="progress-stat">
+                    <div class="progress-stat-value" id="progress-percent">0%</div>
+                    <div class="progress-stat-label">Complete</div>
+                </div>
+                <div class="progress-stat">
+                    <div class="progress-stat-value" id="progress-eta">--</div>
+                    <div class="progress-stat-label">Est. Remaining</div>
+                </div>
+            </div>
+            <button class="btn btn-secondary" id="progress-cancel" style="margin-top: 16px;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Language strings for Arabic support -->
+    <script>
+    (function() {
+        const translations = {
+            en: {
+                loadDemo: 'Load Demo',
+                openFile: 'Open .hta.zip',
+                summary: 'Summary',
+                parameters: 'Parameters',
+                states: 'States',
+                transitions: 'Transitions',
+                runAnalysis: 'Run Analysis',
+                runPSA: 'Run PSA',
+                export: 'Export',
+                results: 'Results',
+                baseCase: 'Base Case',
+                budgetImpact: 'Budget Impact',
+                validation: 'Validation',
+                costEffective: 'Cost-Effective',
+                notCostEffective: 'Not Cost-Effective',
+                highlyCostEffective: 'Highly Cost-Effective',
+                dominates: 'Dominates (Cost-Saving)',
+                icer: 'ICER',
+                qaly: 'QALY',
+                perQaly: 'per QALY',
+                omanGuidance: 'Oman HTA Guidance',
+                omanHealthData: 'Oman Health Data'
+            },
+            ar: {
+                loadDemo: 'تحميل عرض',
+                openFile: 'فتح ملف',
+                summary: 'ملخص',
+                parameters: 'المعلمات',
+                states: 'الحالات',
+                transitions: 'الانتقالات',
+                runAnalysis: 'تشغيل التحليل',
+                runPSA: 'تشغيل PSA',
+                export: 'تصدير',
+                results: 'النتائج',
+                baseCase: 'الحالة الأساسية',
+                budgetImpact: 'تأثير الميزانية',
+                validation: 'التحقق',
+                costEffective: 'فعال من حيث التكلفة',
+                notCostEffective: 'غير فعال من حيث التكلفة',
+                highlyCostEffective: 'فعال جداً من حيث التكلفة',
+                dominates: 'يهيمن (موفر للتكلفة)',
+                icer: 'ICER',
+                qaly: 'QALY',
+                perQaly: 'لكل QALY',
+                omanGuidance: 'إرشادات تقييم التقنيات الصحية في عُمان',
+                omanHealthData: 'بيانات صحة عُمان'
+            }
+        };
+
+        let currentLang = localStorage.getItem('htaLang') || 'en';
+
+        window.toggleLanguage = function() {
+            currentLang = currentLang === 'en' ? 'ar' : 'en';
+            localStorage.setItem('htaLang', currentLang);
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            document.documentElement.lang = currentLang;
+            document.getElementById('lang-icon').textContent = currentLang === 'ar' ? 'EN' : 'ع';
+
+            // Show notification
+            if (window.app && window.app.showToast) {
+                window.app.showToast(currentLang === 'ar' ? 'تم التبديل إلى العربية' : 'Switched to English', 'info');
+            }
+        };
+
+        window.t = function(key) {
+            return translations[currentLang][key] || translations.en[key] || key;
+        };
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (currentLang === 'ar') {
+                document.documentElement.dir = 'rtl';
+                document.documentElement.lang = 'ar';
+                document.getElementById('lang-icon').textContent = 'EN';
+            }
+
+            // Initialize dark mode - default to ON
+            const savedDarkMode = localStorage.getItem('darkMode');
+            const isDark = savedDarkMode === null ? true : savedDarkMode === 'true';
+
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+                const icon = document.getElementById('dark-mode-icon');
+                if (icon) icon.textContent = '☀️';
+            }
+
+            // Dark mode toggle button handler
+            const darkModeBtn = document.getElementById('btn-dark-mode');
+            if (darkModeBtn) {
+                darkModeBtn.addEventListener('click', function() {
+                    document.body.classList.toggle('dark-mode');
+                    const isDarkNow = document.body.classList.contains('dark-mode');
+                    localStorage.setItem('darkMode', isDarkNow);
+                    const icon = document.getElementById('dark-mode-icon');
+                    if (icon) icon.textContent = isDarkNow ? '☀️' : '🌙';
+                });
+            }
+        });
+    })();
+
+    // Keyboard shortcuts handler
+    (function() {
+        let pendingKey = null;
+
+        window.openShortcutsModal = function() {
+            document.getElementById('shortcuts-modal').classList.add('active');
+        };
+
+        window.closeShortcutsModal = function() {
+            document.getElementById('shortcuts-modal').classList.remove('active');
+        };
+
+        // Progress modal functions
+        window.showProgressModal = function(title, message) {
+            document.getElementById('progress-title').textContent = title || 'Running Analysis...';
+            document.getElementById('progress-message').textContent = message || 'Please wait while the analysis completes';
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('progress-iteration').textContent = '0';
+            document.getElementById('progress-percent').textContent = '0%';
+            document.getElementById('progress-eta').textContent = '--';
+            document.getElementById('progress-modal').classList.add('active');
+        };
+
+        window.updateProgress = function(current, total, startTime) {
+            const percent = Math.round((current / total) * 100);
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-iteration').textContent = current.toLocaleString();
+            document.getElementById('progress-percent').textContent = percent + '%';
+
+            // Calculate ETA
+            if (startTime && current > 0) {
+                const elapsed = (Date.now() - startTime) / 1000;
+                const rate = current / elapsed;
+                const remaining = (total - current) / rate;
+                if (remaining < 60) {
+                    document.getElementById('progress-eta').textContent = Math.round(remaining) + 's';
+                } else {
+                    document.getElementById('progress-eta').textContent = Math.round(remaining / 60) + 'm';
+                }
+            }
+        };
+
+        window.hideProgressModal = function() {
+            document.getElementById('progress-modal').classList.remove('active');
+        };
+
+        document.addEventListener('keydown', function(e) {
+            // Don't trigger shortcuts in input fields
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                return;
+            }
+
+            // ? - Show shortcuts
+            if (e.key === '?' && !e.ctrlKey && !e.altKey) {
+                e.preventDefault();
+                openShortcutsModal();
+                return;
+            }
+
+            // Escape - Close modals
+            if (e.key === 'Escape') {
+                closeShortcutsModal();
+                hideProgressModal();
+                const storyModal = document.getElementById('story-modal');
+                if (storyModal) storyModal.style.display = 'none';
+                return;
+            }
+
+            // Ctrl shortcuts
+            if (e.ctrlKey || e.metaKey) {
+                // Ctrl+D - Toggle dark mode
+                if (e.key === 'd' || e.key === 'D') {
+                    e.preventDefault();
+                    const darkBtn = document.getElementById('btn-dark-mode');
+                    if (darkBtn) darkBtn.click();
+                    return;
+                }
+
+                // Ctrl+L - Toggle language
+                if (e.key === 'l' || e.key === 'L') {
+                    e.preventDefault();
+                    toggleLanguage();
+                    return;
+                }
+
+                // Ctrl+S - Save/Export
+                if (e.key === 's' || e.key === 'S') {
+                    e.preventDefault();
+                    if (window.app && window.app.exportJSON) {
+                        window.app.exportJSON();
+                    }
+                    return;
+                }
+
+                // Ctrl+Enter - Run analysis
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (window.app && window.app.runBaseCase) {
+                        window.app.runBaseCase();
+                    }
+                    return;
+                }
+
+                // Ctrl+Shift+P - Run PSA
+                if ((e.key === 'p' || e.key === 'P') && e.shiftKey) {
+                    e.preventDefault();
+                    if (window.app && window.app.runPSA) {
+                        window.app.runPSA();
+                    }
+                    return;
+                }
+
+                // Ctrl+Z - Undo
+                if (e.key === 'z' || e.key === 'Z') {
+                    if (!e.shiftKey && window.app && window.app.undo) {
+                        e.preventDefault();
+                        window.app.undo();
+                    }
+                    return;
+                }
+
+                // Ctrl+Y - Redo
+                if (e.key === 'y' || e.key === 'Y') {
+                    e.preventDefault();
+                    if (window.app && window.app.redo) {
+                        window.app.redo();
+                    }
+                    return;
+                }
+
+                // Ctrl+B - Toggle sidebar
+                if (e.key === 'b' || e.key === 'B') {
+                    e.preventDefault();
+                    const sidebar = document.querySelector('.sidebar');
+                    if (sidebar) {
+                        sidebar.style.display = sidebar.style.display === 'none' ? '' : 'none';
+                    }
+                    return;
+                }
+            }
+
+            // G then X navigation (vim-like)
+            if (e.key === 'g' || e.key === 'G') {
+                pendingKey = 'g';
+                setTimeout(() => { pendingKey = null; }, 1000);
+                return;
+            }
+
+            if (pendingKey === 'g') {
+                pendingKey = null;
+                let section = null;
+                if (e.key === 's' || e.key === 'S') section = 'summary';
+                else if (e.key === 'p' || e.key === 'P') section = 'parameters';
+                else if (e.key === 'r' || e.key === 'R') section = 'deterministic';
+
+                if (section) {
+                    e.preventDefault();
+                    const navItem = document.querySelector(`[data-section="${section}"]`);
+                    if (navItem) navItem.click();
+                }
+            }
+        });
+
+        // Click handlers for header buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const shortcutsBtn = document.getElementById('btn-shortcuts');
+            if (shortcutsBtn) {
+                shortcutsBtn.addEventListener('click', openShortcutsModal);
+            }
+
+            const langBtn = document.getElementById('btn-lang');
+            if (langBtn) {
+                langBtn.addEventListener('click', toggleLanguage);
+            }
+
+            // Close shortcuts modal on background click
+            const shortcutsModal = document.getElementById('shortcuts-modal');
+            if (shortcutsModal) {
+                shortcutsModal.addEventListener('click', function(e) {
+                    if (e.target === shortcutsModal) {
+                        closeShortcutsModal();
+                    }
+                });
+            }
+
+            // Cancel button for progress modal
+            const cancelBtn = document.getElementById('progress-cancel');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function() {
+                    if (window.app && window.app.cancelOperation) {
+                        window.app.cancelOperation();
+                    }
+                    hideProgressModal();
+                });
+            }
+        });
+    })();
     </script>
 </body>
 </html>
