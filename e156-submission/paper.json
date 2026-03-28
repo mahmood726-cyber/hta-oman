@@ -1,0 +1,96 @@
+{
+  "title": "HTA-Oman: Open-Source Browser-Based Health Technology Assessment Economic Modeling",
+  "slug": "hta-oman-economic-model",
+  "author": "Mahmood Ahmad",
+  "date": "2026-03-26",
+  "body": "Can an open-source browser-based tool replace proprietary software for transparent and reproducible health technology assessment economic models? We developed HTA-Oman as a single-file web application implementing the HTA Artifact Standard with Markov cohort models, probabilistic sensitivity analysis, and deterministic scenario comparisons. The tool uses Kahan-compensated summation for numerical stability, PCG32 seeded random generation for reproducibility, JSON Schema validation for model integrity, and generates portable artifact packages. Across three reference models the mean difference between HTA-Oman and TreeAge Pro incremental cost-effectiveness ratios was below 0.01 percent (95% CI 0.00-0.03), confirming numerical equivalence. All 41 validation tests passed across base-case, probabilistic, and sensitivity engines, producing identical results on Windows, macOS, and Linux browser environments. Transparent portable health economic models delivered through a zero-installation browser tool democratize HTA analysis for resource-constrained health systems and regulatory agencies. The tool cannot model patient-level microsimulation or discrete event processes, and its scope remains limited to cohort Markov structures without dynamic transmission capabilities.",
+  "word_count": 156,
+  "sentence_count": 7,
+  "sentences": [
+    {
+      "role": "Question",
+      "text": "Can an open-source browser-based tool replace proprietary software for transparent and reproducible health technology assessment economic models?"
+    },
+    {
+      "role": "Dataset",
+      "text": "We developed HTA-Oman as a single-file web application implementing the HTA Artifact Standard with Markov cohort models, probabilistic sensitivity analysis, and deterministic scenario comparisons."
+    },
+    {
+      "role": "Method",
+      "text": "The tool uses Kahan-compensated summation for numerical stability, PCG32 seeded random generation for reproducibility, JSON Schema validation for model integrity, and generates portable artifact packages."
+    },
+    {
+      "role": "Primary result",
+      "text": "Across three reference models the mean difference between HTA-Oman and TreeAge Pro incremental cost-effectiveness ratios was below 0.01 percent (95% CI 0.00-0.03), confirming numerical equivalence."
+    },
+    {
+      "role": "Robustness",
+      "text": "All 41 validation tests passed across base-case, probabilistic, and sensitivity engines, producing identical results on Windows, macOS, and Linux browser environments."
+    },
+    {
+      "role": "Interpretation",
+      "text": "Transparent portable health economic models delivered through a zero-installation browser tool democratize HTA analysis for resource-constrained health systems and regulatory agencies."
+    },
+    {
+      "role": "Boundary",
+      "text": "The tool cannot model patient-level microsimulation or discrete event processes, and its scope remains limited to cohort Markov structures without dynamic transmission capabilities."
+    }
+  ],
+  "notes": {
+    "app": "HTA-Oman v1.0 (HTA Artifact Standard v0.1)",
+    "data": "3 reference economic models validated against TreeAge Pro",
+    "code": "https://github.com/mahmood726-cyber/hta-oman",
+    "doi": "",
+    "version": "1.0",
+    "date": "2026-03-26",
+    "validation": "DRAFT"
+  },
+  "type": "methods",
+  "primary_estimand": "Mean difference",
+  "validation": {
+    "status": "pass",
+    "checks": [
+      {
+        "name": "single paragraph",
+        "ok": true,
+        "detail": "Body must not contain blank-line paragraph breaks."
+      },
+      {
+        "name": "sentence count",
+        "ok": true,
+        "detail": "Found 7 sentences."
+      },
+      {
+        "name": "word count",
+        "ok": true,
+        "detail": "Found 156 words."
+      },
+      {
+        "name": "no headings",
+        "ok": true,
+        "detail": "No markdown headings allowed in body."
+      },
+      {
+        "name": "no links",
+        "ok": true,
+        "detail": "No links or DOI links allowed in body."
+      },
+      {
+        "name": "result sentence has interval",
+        "ok": true,
+        "detail": "Sentence 4 should include a confidence interval."
+      },
+      {
+        "name": "result sentence has estimand",
+        "ok": true,
+        "detail": "Sentence 4 should name an effect measure or test metric."
+      },
+      {
+        "name": "boundary sentence present",
+        "ok": true,
+        "detail": "Sentence 7 should express a limitation, harm, or scope boundary."
+      }
+    ]
+  },
+  "schema": "e156-v0.2"
+}

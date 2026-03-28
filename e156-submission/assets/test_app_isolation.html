@@ -1,0 +1,53 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script>
+            // Minimal stubs
+            window.OmanHTAGuidance = { defaults: {} };
+            class HTAValidator { validate() { return []; } }
+            class MarkovEngine { run() { return {}; } runAllStrategies() { return { incremental: { comparisons: [{ icer: 0 }] } }; } }
+            class PSAEngine { run() { return {}; } }
+            class DSAEngine {
+                constructor() { this.options = { percentageRange: 0.2 }; }
+                run() { return { parameters: [] }; }
+            }
+            class MicrosimulationEngine { run() { return {}; } }
+        </script>
+    </head>
+    <body>
+        <div id="drop-zone"></div>
+        <div id="loading-overlay" class="active"></div>
+        <div id="btn-demo"></div>
+        <div id="btn-open"></div>
+        <div id="file-input"></div>
+        <script>
+            // Check before loading app.js
+            window.beforeAppJs = {
+                HTAValidator: typeof HTAValidator,
+                MarkovEngine: typeof MarkovEngine,
+                HTAApp: typeof HTAApp
+            };
+        </script>
+        <script src="src/ui/app.js"></script>
+        <script>
+            // Check after loading app.js
+            window.afterAppJs = {
+                HTAApp: typeof HTAApp,
+                windowApp: typeof window.app,
+                normalizeSettings: typeof normalizeSettings
+            };
+
+            // Try to access HTAApp
+            try {
+                window.htaAppExists = typeof HTAApp !== 'undefined';
+                if (window.htaAppExists) {
+                    window.testAppInstance = new HTAApp();
+                }
+            } catch(e) {
+                window.htaAppError = e.message;
+            }
+        </script>
+    </body>
+    </html>
+    
