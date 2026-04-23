@@ -8,7 +8,7 @@ This WinForms WebView2 wrapper loads `index.html` from the HTA-oman folder using
 
 ## Run (Developer)
 ```powershell
-cd C:\Users\user\Downloads\HTA-oman
+cd <repo-root>
 # Restore + run
 dotnet run --project .\webview2\OmanHTA.WebView2
 ```

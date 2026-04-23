@@ -4,6 +4,7 @@ Test export features for 5/5 rating
 import time
 import sys
 import tempfile
+from _hta_url import hta_oman_index_url, hta_oman_index_path
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
@@ -21,7 +22,7 @@ def run_export_feature_checks():
 
     try:
         print("Loading HTA app...")
-        driver.get('file:///C:/Users/user/Downloads/HTA-oman/index.html')
+        driver.get(hta_oman_index_url())
         time.sleep(3)
 
         results = {}

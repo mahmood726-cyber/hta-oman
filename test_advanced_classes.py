@@ -1,3 +1,4 @@
+from _hta_url import hta_oman_index_url, hta_oman_index_path
 """Test that all advanced enhancement classes are loaded correctly"""
 import time
 import sys
@@ -18,7 +19,7 @@ options.add_argument("--no-sandbox")
 driver = webdriver.Chrome(options=options)
 
 try:
-    driver.get("file:///C:/Users/user/Downloads/HTA-oman/index.html")
+    driver.get(hta_oman_index_url())
     time.sleep(2)
 
     # List of classes that should be loaded

@@ -1,3 +1,4 @@
+from _hta_url import hta_oman_index_url, hta_oman_index_path
 """Test editorial review fixes - MPSRF and Exchangeable Interactions"""
 import time
 import sys
@@ -19,7 +20,7 @@ print("Starting Edge...")
 driver = webdriver.Edge(options=options)
 
 try:
-    driver.get("file:///C:/Users/user/Downloads/HTA-oman/index.html")
+    driver.get(hta_oman_index_url())
     time.sleep(2)
 
     print("\n=== Testing Editorial Review Fixes ===\n")

@@ -1,3 +1,4 @@
+from _hta_url import hta_oman_index_url, hta_oman_index_path
 """Quick test to identify remaining warnings"""
 import time
 import sys
@@ -29,7 +30,7 @@ def wait_for_loading(timeout=10):
         pass
 
 try:
-    driver.get("file:///C:/Users/user/Downloads/HTA-oman/index.html")
+    driver.get(hta_oman_index_url())
     time.sleep(2)
     wait_for_loading()
 

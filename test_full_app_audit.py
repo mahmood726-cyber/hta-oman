@@ -5,6 +5,7 @@ import time
 import sys
 import tempfile
 import json
+from _hta_url import hta_oman_index_url, hta_oman_index_path
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
@@ -53,7 +54,7 @@ class FullAppAudit:
 
             # Load app
             print("\nLoading app...")
-            self.driver.get('file:///C:/Users/user/Downloads/HTA-oman/index.html')
+            self.driver.get(hta_oman_index_url())
             time.sleep(3)
 
             # Run all tests
@@ -573,7 +574,8 @@ class FullAppAudit:
                 const ma = new MetaAnalysisMethods();
                 if (typeof ma.leaveOneOut === 'function') {{
                     const result = ma.leaveOneOut({studies});
-                    return result && Array.isArray(result) && result.length === 4;
+                    // leaveOneOut returns {{results: [...], fullEffect, range, influential, isRobust}}
+                    return result && result.results && Array.isArray(result.results) && result.results.length === 4;
                 }}
                 return 'not_found';
             }} catch(e) {{
