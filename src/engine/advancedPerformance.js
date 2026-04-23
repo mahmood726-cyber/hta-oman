@@ -114,36 +114,41 @@ class SharedMemoryManager {
         const workerUrl = URL.createObjectURL(blob);
 
         const promises = [];
-        for (let i = 0; i < numWorkers; i++) {
-            const start = i * chunkSize;
-            const end = Math.min(start + chunkSize, n);
+        const workers = [];
+        try {
+            for (let i = 0; i < numWorkers; i++) {
+                const start = i * chunkSize;
+                const end = Math.min(start + chunkSize, n);
 
-            if (start >= n) break;
+                if (start >= n) break;
 
-            const worker = new Worker(workerUrl);
-            const promise = new Promise((resolve, reject) => {
-                worker.onmessage = (e) => {
-                    worker.terminate();
-                    resolve(e.data);
-                };
-                worker.onerror = reject;
-            });
+                const worker = new Worker(workerUrl);
+                workers.push(worker);
+                const promise = new Promise((resolve, reject) => {
+                    worker.onmessage = (e) => {
+                        resolve(e.data);
+                    };
+                    worker.onerror = reject;
+                });
 
-            worker.postMessage({
-                input: this.buffers.get('parallelInput').buffer,
-                output: this.buffers.get('parallelOutput').buffer,
-                start,
-                end,
-                fnStr: fn.toString()
-            });
+                worker.postMessage({
+                    input: this.buffers.get('parallelInput').buffer,
+                    output: this.buffers.get('parallelOutput').buffer,
+                    start,
+                    end,
+                    fnStr: fn.toString()
+                });
 
-            promises.push(promise);
+                promises.push(promise);
+            }
+
+            await Promise.all(promises);
+            return Array.from(outputBuffer.slice(0, n));
+        } finally {
+            // Ensure workers are terminated and URL is revoked
+            workers.forEach(w => w.terminate());
+            URL.revokeObjectURL(workerUrl);
         }
-
-        await Promise.all(promises);
-        URL.revokeObjectURL(workerUrl);
-
-        return Array.from(outputBuffer.slice(0, n));
     }
 
     /**

@@ -59,7 +59,7 @@ class HTAValidator {
             }
 
         } catch (e) {
-            this.addError('ZIP_READ_ERROR', '', `Failed to read ZIP file: ${e.message}`);
+            this.addError('ZIP_READ_ERROR', '', `Failed to read ZIP file: ${e?.message || String(e)}`);
         }
 
         this.results.validationTime = Math.round(performance.now() - startTime);

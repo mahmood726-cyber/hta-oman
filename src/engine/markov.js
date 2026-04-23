@@ -67,7 +67,7 @@ class MarkovEngine {
 
         // Extract model components
         const settings = this.getSettings(project);
-        const parameters = this.resolveParameters(project.parameters, overrides);
+        const { baseValues, overrideExpressions } = this.resolveParameters(project.parameters, overrides);
         const states = project.states;
         const transitions = project.transitions;
 
@@ -97,8 +97,8 @@ class MarkovEngine {
 
         // Run simulation
         for (let cycle = 0; cycle <= cycles; cycle++) {
-            // Build evaluation context
-            const context = this.buildContext(parameters, settings, cycle);
+            // Build evaluation context with base values first, then apply overrides
+            const context = this.buildContext(baseValues, overrideExpressions, settings, cycle);
 
             // Record trace
             trace.cycles.push(cycle);
@@ -154,30 +154,61 @@ class MarkovEngine {
             starting_age: s.starting_age ?? 50,
             gdp_per_capita_omr: s.gdp_per_capita_omr,
             wtp_thresholds: s.wtp_thresholds,
-            wtp_multipliers: s.wtp_multipliers
+            wtp_multipliers: s.wtp_multipliers,
+            // Background mortality settings
+            use_background_mortality: s.use_background_mortality ?? false,
+            background_mortality_sex: s.background_mortality_sex || 'mixed',
+            // Tunnel state settings
+            tunnel_states: s.tunnel_states || {}
         };
     }
 
     /**
+     * Get background mortality rate for given age and sex
+     * Uses life tables when available, otherwise returns 0
+     */
+    getBackgroundMortality(age, sex, settings) {
+        if (!settings.use_background_mortality) return 0;
+
+        // Check if LifeTable is available
+        if (typeof LifeTable === 'undefined') return 0;
+
+        try {
+            const lifeTable = new LifeTable();
+            const effectiveSex = settings.background_mortality_sex === 'mixed' ?
+                (Math.random() < 0.5 ? 'male' : 'female') : settings.background_mortality_sex;
+            return lifeTable.getMortalityRate(Math.floor(age), effectiveSex);
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    /**
      * Resolve parameters with overrides
+     * Returns { baseValues, overrideExpressions } to handle strategy differentiation
      */
     resolveParameters(parameters, overrides) {
-        const resolved = {};
+        const baseValues = {};
+        const overrideExpressions = {};
 
         for (const [id, param] of Object.entries(parameters || {})) {
-            if (id in overrides) {
-                resolved[id] = overrides[id];
-            } else if (typeof param.value === 'number') {
-                resolved[id] = param.value;
+            // Always store the base value first
+            if (typeof param.value === 'number') {
+                baseValues[id] = param.value;
             } else if (typeof param.value === 'string') {
                 // Expression - will be evaluated in context
-                resolved[id] = param.value;
+                baseValues[id] = param.value;
             } else {
-                resolved[id] = 0;
+                baseValues[id] = 0;
+            }
+
+            // If there's an override, store it separately
+            if (id in overrides) {
+                overrideExpressions[id] = overrides[id];
             }
         }
 
-        return resolved;
+        return { baseValues, overrideExpressions };
     }
 
     /**
@@ -211,28 +242,29 @@ class MarkovEngine {
 
     /**
      * Build evaluation context for expressions
+     * Handles strategy differentiation by evaluating overrides AFTER base values are established
      */
-    buildContext(parameters, settings, cycle) {
+    buildContext(baseValues, overrideExpressions, settings, cycle) {
         const context = {
             cycle: cycle,
             time: cycle * settings.cycle_length,
             age: (settings.starting_age || 50) + cycle * settings.cycle_length
         };
 
-        // Add parameters
-        for (const [id, value] of Object.entries(parameters)) {
+        // STEP 1: Add all numeric base parameters to context first
+        for (const [id, value] of Object.entries(baseValues)) {
             if (typeof value === 'number') {
                 context[id] = value;
             }
         }
 
-        // Resolve expression parameters
-        for (const [id, value] of Object.entries(parameters)) {
-            if (typeof value === 'string') {
+        // STEP 2: Resolve base expression parameters (not overridden)
+        for (const [id, value] of Object.entries(baseValues)) {
+            if (typeof value === 'string' && !(id in overrideExpressions)) {
                 const trimmed = value.trim();
                 const isSimpleIdentifier = /^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed);
                 if (isSimpleIdentifier) {
-                    if (Object.prototype.hasOwnProperty.call(context, trimmed)) {
+                    if (Object.hasOwn(context, trimmed)) {
                         context[id] = context[trimmed];
                     } else {
                         context[id] = 0;
@@ -247,6 +279,40 @@ class MarkovEngine {
                         this.warnedParameters.add(id);
                     }
                     context[id] = 0;
+                }
+            }
+        }
+
+        // STEP 3: Now apply override expressions using the established base context
+        // This allows expressions like 'p_mi_standard * hr_mi_sglt2' to work correctly
+        // because p_mi_standard is already in the context with its base value
+        for (const [id, overrideExpr] of Object.entries(overrideExpressions)) {
+            if (typeof overrideExpr === 'number') {
+                context[id] = overrideExpr;
+            } else if (typeof overrideExpr === 'string') {
+                const trimmed = overrideExpr.trim();
+                const isSimpleIdentifier = /^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed);
+                if (isSimpleIdentifier) {
+                    // Simple reference to another parameter
+                    if (Object.hasOwn(context, trimmed)) {
+                        context[id] = context[trimmed];
+                    } else {
+                        context[id] = 0;
+                    }
+                } else {
+                    // Expression evaluation - base values are already in context
+                    try {
+                        context[id] = ExpressionParser.evaluate(overrideExpr, context);
+                    } catch (e) {
+                        if (!this.warnedParameters.has(id + '_override')) {
+                            console.warn(`Failed to evaluate override ${id}: ${e.message}`);
+                            this.warnedParameters.add(id + '_override');
+                        }
+                        // Fall back to base value if override fails
+                        if (!(id in context)) {
+                            context[id] = 0;
+                        }
+                    }
                 }
             }
         }
@@ -319,6 +385,7 @@ class MarkovEngine {
 
     /**
      * Build transition probability matrix
+     * Validates row sums and handles complement transitions
      */
     buildTransitionMatrix(transitions, stateIds, context) {
         const n = stateIds.length;
@@ -332,6 +399,9 @@ class MarkovEngine {
             }
         }
 
+        // Track which transitions are explicitly defined (for complement handling)
+        const explicitTransitions = new Set();
+
         // Fill in transitions
         for (const [transId, trans] of Object.entries(transitions || {})) {
             let prob = 0;
@@ -339,6 +409,10 @@ class MarkovEngine {
             if (typeof trans.probability === 'number') {
                 prob = trans.probability;
             } else if (typeof trans.probability === 'string') {
+                // Check for complement keyword
+                if (trans.probability.toLowerCase() === 'complement' || trans.probability === 'C') {
+                    continue; // Handle complements after all explicit transitions
+                }
                 try {
                     prob = ExpressionParser.evaluate(trans.probability, context);
                 } catch (e) {
@@ -351,6 +425,50 @@ class MarkovEngine {
 
             if (trans.from in matrix && trans.to in matrix[trans.from]) {
                 matrix[trans.from][trans.to] = prob;
+                explicitTransitions.add(`${trans.from}->${trans.to}`);
+            }
+        }
+
+        // Handle complement transitions
+        for (const [transId, trans] of Object.entries(transitions || {})) {
+            if (typeof trans.probability === 'string' &&
+                (trans.probability.toLowerCase() === 'complement' || trans.probability === 'C')) {
+                if (trans.from in matrix && trans.to in matrix[trans.from]) {
+                    // Calculate complement probability
+                    let rowSum = 0;
+                    for (const toId of stateIds) {
+                        if (`${trans.from}->${toId}` !== `${trans.from}->${trans.to}`) {
+                            rowSum += matrix[trans.from][toId];
+                        }
+                    }
+                    matrix[trans.from][trans.to] = Math.max(0, 1 - rowSum);
+                }
+            }
+        }
+
+        // Validate row sums and warn if they don't equal 1.0
+        const tolerance = 1e-6;
+        for (const fromId of stateIds) {
+            let rowSum = 0;
+            for (const toId of stateIds) {
+                rowSum += matrix[fromId][toId];
+            }
+
+            if (rowSum < tolerance) {
+                // No transitions defined - assume stay in same state
+                matrix[fromId][fromId] = 1.0;
+            } else if (Math.abs(rowSum - 1.0) > tolerance) {
+                if (rowSum > 1.0) {
+                    // Row sum exceeds 1 - normalize
+                    console.warn(`Transition probabilities from state "${fromId}" sum to ${rowSum.toFixed(4)} (>1.0). Normalizing.`);
+                    for (const toId of stateIds) {
+                        matrix[fromId][toId] /= rowSum;
+                    }
+                } else {
+                    // Row sum less than 1 - assign remainder to self-transition
+                    const remainder = 1.0 - rowSum;
+                    matrix[fromId][fromId] += remainder;
+                }
             }
         }
 
@@ -398,27 +516,36 @@ class MarkovEngine {
         const incCosts = intResults.total_costs - compResults.total_costs;
         const incQalys = intResults.total_qalys - compResults.total_qalys;
 
-        // Calculate ICER
+        // Calculate ICER with proper handling of all quadrants and edge cases
         let icer = null;
         let dominance = 'none';
 
-        if (incQalys > 0) {
+        if (Math.abs(incQalys) < 1e-10) {
+            // Incremental QALYs essentially zero - ICER undefined
+            if (incCosts > 0) {
+                dominance = 'more_costly_equal_effect';
+                icer = 'Undefined (no QALY difference)';
+            } else if (incCosts < 0) {
+                dominance = 'less_costly_equal_effect';
+                icer = 'Undefined (no QALY difference)';
+            } else {
+                dominance = 'equivalent';
+                icer = 'Equivalent';
+            }
+        } else if (incQalys > 0) {
             if (incCosts > 0) {
                 icer = incCosts / incQalys;
             } else {
                 dominance = 'dominant';
                 icer = 'Dominant';
             }
-        } else if (incQalys < 0) {
+        } else {
             if (incCosts > 0) {
                 dominance = 'dominated';
                 icer = 'Dominated';
             } else {
-                icer = incCosts / incQalys; // SW quadrant
+                icer = incCosts / incQalys; // SW quadrant - trade-off
             }
-        } else {
-            // No QALY difference
-            icer = incCosts > 0 ? Infinity : (incCosts < 0 ? -Infinity : 0);
         }
 
         // Calculate NMB at different WTP thresholds
@@ -494,13 +621,27 @@ class MarkovEngine {
                 let icer = null;
                 let dominance = 'none';
 
-                if (incQalys > 0) {
+                // Handle ICER calculation for all four quadrants of the CE plane
+                // Plus edge case when incremental QALYs is zero
+                if (Math.abs(incQalys) < 1e-10) {
+                    // Incremental QALYs essentially zero - ICER undefined
+                    icer = null;
+                    if (incCosts > 0) {
+                        dominance = 'more_costly_equal_effect';
+                    } else if (incCosts < 0) {
+                        dominance = 'less_costly_equal_effect';
+                    } else {
+                        dominance = 'equivalent';
+                    }
+                } else if (incQalys > 0) {
+                    // Northeast or Northwest quadrant
                     if (incCosts > 0) {
                         icer = incCosts / incQalys;
                     } else {
                         dominance = 'dominant';
                     }
-                } else if (incQalys < 0) {
+                } else {
+                    // Southeast or Southwest quadrant
                     if (incCosts > 0) {
                         dominance = 'dominated';
                     } else {

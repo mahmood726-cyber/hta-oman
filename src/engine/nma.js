@@ -46,22 +46,108 @@ class NetworkMetaAnalysis {
 
     /**
      * Create seeded random number generator
+     * RFC-005 Determinism Contract compliant
      */
     createRNG(seed) {
         // PCG-like simple PRNG
         let state = seed;
-        return {
+
+        const rng = {
             random: () => {
                 state = (state * 1103515245 + 12345) & 0x7fffffff;
                 return state / 0x7fffffff;
             },
             normal: (mean = 0, sd = 1) => {
-                const u1 = this.rng?.random() || Math.random();
-                const u2 = this.rng?.random() || Math.random();
+                // Use rng.random() instead of this.rng to avoid circular reference
+                // Guard against u1 === 0 to prevent Math.log(0) = -Infinity
+                let u1;
+                do {
+                    u1 = rng.random();
+                } while (u1 === 0);
+                const u2 = rng.random();
                 const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
                 return mean + sd * z;
+            },
+            /**
+             * Sample from Beta distribution using Marsaglia-Tsang method
+             * Reference: Marsaglia & Tsang (2000)
+             */
+            beta: (alpha, beta) => {
+                if (alpha <= 0 || beta <= 0) {
+                    throw new Error('Beta distribution requires alpha > 0 and beta > 0');
+                }
+                const x = rng.gamma(alpha, 1);
+                const y = rng.gamma(beta, 1);
+                // Guard against 0/0 = NaN
+                if (x + y === 0) {
+                    return 0.5; // Return mean of Beta distribution as fallback
+                }
+                return x / (x + y);
+            },
+            /**
+             * Sample from Gamma distribution using Marsaglia-Tsang method
+             * Reference: Marsaglia & Tsang (2000)
+             */
+            gamma: (shape, scale = 1) => {
+                if (shape <= 0 || scale <= 0) {
+                    throw new Error('Gamma distribution requires shape > 0 and scale > 0');
+                }
+
+                if (shape < 1) {
+                    // For shape < 1: Gamma(a) = Gamma(a+1) * U^(1/a)
+                    const u = rng.random();
+                    return rng.gamma(shape + 1, scale) * Math.pow(u, 1 / shape);
+                }
+
+                const d = shape - 1/3;
+                const c = 1 / Math.sqrt(9 * d);
+
+                while (true) {
+                    let x, v;
+                    do {
+                        x = rng.normal(0, 1);
+                        v = 1 + c * x;
+                    } while (v <= 0);
+
+                    v = v * v * v;
+                    const u = rng.random();
+
+                    if (u < 1 - 0.0331 * x * x * x * x) {
+                        return Math.max(1e-10, d * v * scale);
+                    }
+
+                    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) {
+                        return Math.max(1e-10, d * v * scale);
+                    }
+                }
+            },
+            /**
+             * Sample from uniform distribution
+             */
+            uniform: (min = 0, max = 1) => {
+                return min + rng.random() * (max - min);
+            },
+            /**
+             * Sample from lognormal distribution
+             */
+            lognormal: (meanlog, sdlog) => {
+                return Math.exp(rng.normal(meanlog, sdlog));
+            },
+            /**
+             * Sample from triangular distribution
+             */
+            triangular: (min, mode, max) => {
+                const u = rng.random();
+                const fc = (mode - min) / (max - min);
+                if (u < fc) {
+                    return min + Math.sqrt(u * (max - min) * (mode - min));
+                } else {
+                    return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+                }
             }
         };
+
+        return rng;
     }
 
     /**
@@ -149,7 +235,11 @@ class NetworkMetaAnalysis {
             }
         }
 
-        return Object.entries(connections).sort((a, b) => b[1] - a[1])[0]?.[0] || data[0]?.treatment;
+        const sortedConnections = Object.entries(connections).sort((a, b) => b[1] - a[1]);
+        if (sortedConnections.length === 0) {
+            return data[0]?.treatment || null;
+        }
+        return sortedConnections[0]?.[0] || data[0]?.treatment;
     }
 
     /**

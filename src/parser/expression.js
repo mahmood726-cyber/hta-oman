@@ -511,7 +511,7 @@ class DependencyAnalyzer {
 
             const deps = graph[node] || new Set();
             for (const dep of deps) {
-                if (graph.hasOwnProperty(dep)) {
+                if (Object.hasOwn(graph, dep)) {
                     dfs(dep);
                 }
             }
@@ -540,7 +540,7 @@ class DependencyAnalyzer {
 
             const deps = graph[node] || new Set();
             for (const dep of deps) {
-                if (graph.hasOwnProperty(dep)) {
+                if (Object.hasOwn(graph, dep)) {
                     visit(dep);
                 }
             }
@@ -614,7 +614,7 @@ const ExpressionParser = {
      * @param {Object} expressions - Map of name -> expression
      * @returns {Object} Analysis result
      */
-    analyzeDepedencies(expressions) {
+    analyzeDependencies(expressions) {
         const analyzer = new DependencyAnalyzer();
         return analyzer.buildDependencyGraph(expressions);
     },

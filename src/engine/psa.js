@@ -33,8 +33,15 @@ var guidanceDefaults = OmanGuidanceRef?.defaults || {
     placeholder_gdp_per_capita_omr: 10000
 };
 
+// ============ NAMED CONSTANTS ============
 const DEFAULT_WTP_MAX = 100000;
 const DEFAULT_WTP_STEP = 1000;
+const DEFAULT_PSA_ITERATIONS = 10000;
+const DEFAULT_PSA_SEED = 12345;
+const DEFAULT_CONVERGENCE_CHECK_INTERVAL = 500;
+const DEFAULT_CONVERGENCE_THRESHOLD = 0.01;
+const PROGRESS_REPORT_INTERVAL = 500;  // Report progress every N iterations
+const ICER_ZERO_THRESHOLD = 1e-10;     // Threshold for treating incQALYs as zero
 
 function resolveWtpThresholds(settings) {
     if (OmanGuidanceRef?.resolveWtpThresholds) {
@@ -67,8 +74,8 @@ function resolveWtpRange(settings, options) {
 }
 
 function formatCurrency(value, settings, options) {
-    if (OmanGuidance?.formatCurrency) {
-        return OmanGuidance.formatCurrency(value, settings, options);
+    if (OmanGuidanceRef?.formatCurrency) {
+        return OmanGuidanceRef.formatCurrency(value, settings, options);
     }
     const currency = settings?.currency || guidanceDefaults.currency;
     const symbol = currency ? currency + ' ' : '';
@@ -80,14 +87,15 @@ function formatCurrency(value, settings, options) {
 class PSAEngine {
     constructor(options = {}) {
         this.options = {
-            seed: 12345,
-            iterations: 10000,  // Recommended minimum for stable results
+            seed: DEFAULT_PSA_SEED,
+            iterations: DEFAULT_PSA_ITERATIONS,
             wtpMin: 0,
-            wtpMax: 100000,
-            wtpStep: 1000,
-            convergenceCheckInterval: 500,  // Check convergence every N iterations
-            convergenceThreshold: 0.01,     // 1% change in mean ICER
-            correlationMatrix: null,        // For correlated sampling
+            wtpMax: DEFAULT_WTP_MAX,
+            wtpStep: DEFAULT_WTP_STEP,
+            convergenceCheckInterval: DEFAULT_CONVERGENCE_CHECK_INTERVAL,
+            convergenceThreshold: DEFAULT_CONVERGENCE_THRESHOLD,
+            progressInterval: PROGRESS_REPORT_INTERVAL,
+            correlationMatrix: null,
             ...options
         };
 
@@ -133,50 +141,58 @@ class PSAEngine {
         // Reset RNG with seed for reproducibility
         this.rng = new PCG32(this.options.seed);
 
-        // Storage for results
-        const icerValues = [];
-        const incCosts = [];
-        const incQalys = [];
-        const intCosts = [];
-        const intQalys = [];
-        const compCosts = [];
-        const compQalys = [];
+        // Pre-allocate arrays for better performance (avoid dynamic resizing)
+        const incCosts = new Array(iterations);
+        const incQalys = new Array(iterations);
+        const intCosts = new Array(iterations);
+        const intQalys = new Array(iterations);
+        const compCosts = new Array(iterations);
+        const compQalys = new Array(iterations);
+        const icerValues = [];  // Variable length (skips when incQ === 0)
+
+        // Cache project parameters for the loop
+        const projectParams = project.parameters || {};
 
         // Run iterations
         for (let i = 0; i < iterations; i++) {
             // Sample parameters
-            const sampledParams = this.sampleParameters(project.parameters);
+            const sampledParams = this.sampleParameters(projectParams);
 
-            // Merge with overrides
-            const intOverrides = { ...sampledParams, ...interventionOverrides };
-            const compOverrides = { ...sampledParams, ...comparatorOverrides };
+            // Merge with overrides (reuse objects to reduce allocation)
+            const intOverrides = Object.assign({}, sampledParams, interventionOverrides);
+            const compOverrides = Object.assign({}, sampledParams, comparatorOverrides);
 
             // Run model
             const intResult = this.markovEngine.run(project, intOverrides);
             const compResult = this.markovEngine.run(project, compOverrides);
 
-            // Store results
-            intCosts.push(intResult.total_costs);
-            intQalys.push(intResult.total_qalys);
-            compCosts.push(compResult.total_costs);
-            compQalys.push(compResult.total_qalys);
+            // Store results (direct assignment instead of push)
+            intCosts[i] = intResult.total_costs;
+            intQalys[i] = intResult.total_qalys;
+            compCosts[i] = compResult.total_costs;
+            compQalys[i] = compResult.total_qalys;
 
             const incC = intResult.total_costs - compResult.total_costs;
             const incQ = intResult.total_qalys - compResult.total_qalys;
 
-            incCosts.push(incC);
-            incQalys.push(incQ);
+            incCosts[i] = incC;
+            incQalys[i] = incQ;
 
             // Calculate ICER (handling edge cases)
             if (incQ !== 0) {
                 icerValues.push(incC / incQ);
             }
 
-            // Report progress
-            if (this.progressCallback && i % 100 === 0) {
-                await this.progressCallback(i, iterations, null);
-                // Yield to event loop
-                await new Promise(resolve => setTimeout(resolve, 0));
+            // Report progress at configured interval (default 500 iterations)
+            if (this.progressCallback && i % this.options.progressInterval === 0) {
+                try {
+                    await this.progressCallback(i, iterations, null);
+                    // Yield to event loop
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                } catch (progressError) {
+                    // Log but don't crash analysis on progress callback errors
+                    console.warn('PSA progress callback error:', progressError);
+                }
             }
         }
 
@@ -188,6 +204,9 @@ class PSAEngine {
 
         // Compute CE plane quadrant distribution
         const quadrants = this.computeQuadrants(incCosts, incQalys);
+
+        // Run convergence diagnostics
+        const convergence = this.checkConvergence(incCosts, incQalys, icerValues, primaryWtp);
 
         const computationTime = Math.round(performance.now() - startTime);
 
@@ -204,7 +223,7 @@ class PSAEngine {
                 max: wtpInfo.wtpMax,
                 step: wtpInfo.wtpStep
             },
-            guidance_note: OmanGuidance?.guidanceNote ? OmanGuidance.guidanceNote(settings) : null,
+            guidance_note: OmanGuidanceRef?.guidanceNote ? OmanGuidanceRef.guidanceNote(settings) : null,
             settings_snapshot: {
                 currency: settings.currency || guidanceDefaults.currency,
                 discount_rate_costs: settings.discount_rate_costs ?? guidanceDefaults.discount_rate_costs,
@@ -227,11 +246,16 @@ class PSAEngine {
                     mean_qalys: this.mean(compQalys)
                 }
             },
+            convergence: convergence,
             computation_time_ms: computationTime
         };
 
         if (this.progressCallback) {
-            await this.progressCallback(iterations, iterations, results);
+            try {
+                await this.progressCallback(iterations, iterations, results);
+            } catch (progressError) {
+                console.warn('PSA final progress callback error:', progressError);
+            }
         }
 
         return results;
@@ -242,9 +266,6 @@ class PSAEngine {
      * Supports correlated sampling via Cholesky decomposition
      */
     sampleParameters(parameters, correlationMatrix = null) {
-        const sampled = {};
-        const paramIds = Object.keys(parameters || {});
-
         // Check if we need correlated sampling
         const useCorrelation = correlationMatrix &&
             this.options.correlationMatrix &&
@@ -252,15 +273,16 @@ class PSAEngine {
 
         if (useCorrelation) {
             // Correlated sampling using Cholesky decomposition
-            sampled = this.sampleCorrelated(parameters, correlationMatrix);
-        } else {
-            // Independent sampling (standard approach)
-            for (const [paramId, param] of Object.entries(parameters || {})) {
-                if (param.distribution) {
-                    sampled[paramId] = this.sampleDistribution(param.distribution, param.value);
-                } else if (typeof param.value === 'number') {
-                    sampled[paramId] = param.value;  // Fixed value
-                }
+            return this.sampleCorrelated(parameters, correlationMatrix);
+        }
+
+        // Independent sampling (standard approach)
+        const sampled = {};
+        for (const [paramId, param] of Object.entries(parameters || {})) {
+            if (param.distribution) {
+                sampled[paramId] = this.sampleDistribution(param.distribution, param.value);
+            } else if (typeof param.value === 'number') {
+                sampled[paramId] = param.value;  // Fixed value
             }
         }
 
@@ -828,7 +850,7 @@ class PSAEngine {
     }
 
     /**
-     * Compute summary statistics
+     * Compute summary statistics (optimized - sorts arrays once)
      */
     computeSummary(incCosts, incQalys, icerValues, settings = {}) {
         // Filter valid ICERs (remove Inf, NaN)
@@ -842,6 +864,11 @@ class PSAEngine {
         }
         const primaryProb = probCE[primaryWtp];
 
+        // Sort arrays once for percentile calculations (optimization)
+        const sortedCosts = [...incCosts].sort((a, b) => a - b);
+        const sortedQalys = [...incQalys].sort((a, b) => a - b);
+        const sortedIcers = validIcers.length > 0 ? [...validIcers].sort((a, b) => a - b) : null;
+
         return {
             mean_incremental_costs: this.mean(incCosts),
             mean_incremental_qalys: this.mean(incQalys),
@@ -849,15 +876,15 @@ class PSAEngine {
             sd_incremental_qalys: this.sd(incQalys),
 
             mean_icer: validIcers.length > 0 ? this.mean(validIcers) : null,
-            median_icer: validIcers.length > 0 ? this.percentile(validIcers, 0.5) : null,
+            median_icer: sortedIcers ? this.percentileFromSorted(sortedIcers, 0.5) : null,
             sd_icer: validIcers.length > 0 ? this.sd(validIcers) : null,
 
-            ci_lower_costs: this.percentile(incCosts, 0.025),
-            ci_upper_costs: this.percentile(incCosts, 0.975),
-            ci_lower_qalys: this.percentile(incQalys, 0.025),
-            ci_upper_qalys: this.percentile(incQalys, 0.975),
-            ci_lower_icer: validIcers.length > 0 ? this.percentile(validIcers, 0.025) : null,
-            ci_upper_icer: validIcers.length > 0 ? this.percentile(validIcers, 0.975) : null,
+            ci_lower_costs: this.percentileFromSorted(sortedCosts, 0.025),
+            ci_upper_costs: this.percentileFromSorted(sortedCosts, 0.975),
+            ci_lower_qalys: this.percentileFromSorted(sortedQalys, 0.025),
+            ci_upper_qalys: this.percentileFromSorted(sortedQalys, 0.975),
+            ci_lower_icer: sortedIcers ? this.percentileFromSorted(sortedIcers, 0.025) : null,
+            ci_upper_icer: sortedIcers ? this.percentileFromSorted(sortedIcers, 0.975) : null,
 
             prob_ce: probCE,
             wtp_thresholds: wtpThresholds,
@@ -957,11 +984,91 @@ class PSAEngine {
     percentile(arr, p) {
         if (arr.length === 0) return 0;
         const sorted = [...arr].sort((a, b) => a - b);
+        return this.percentileFromSorted(sorted, p);
+    }
+
+    /**
+     * Compute percentile from pre-sorted array (optimization)
+     * Use when computing multiple percentiles from the same data
+     */
+    percentileFromSorted(sorted, p) {
+        if (sorted.length === 0) return 0;
         const index = (sorted.length - 1) * p;
         const lower = Math.floor(index);
         const upper = Math.ceil(index);
         const fraction = index - lower;
         return sorted[lower] * (1 - fraction) + sorted[upper] * fraction;
+    }
+
+    /**
+     * Check PSA convergence by comparing statistics across halves
+     * Uses split-half analysis to assess stability
+     * @param {Array} incCosts - Incremental costs array
+     * @param {Array} incQalys - Incremental QALYs array
+     * @param {Array} icerValues - Valid ICER values
+     * @param {number} wtp - WTP threshold for P(CE) calculation
+     * @returns {Object} Convergence assessment
+     */
+    checkConvergence(incCosts, incQalys, icerValues, wtp) {
+        const n = incCosts.length;
+        if (n < 200) {
+            return {
+                converged: false,
+                reason: 'Insufficient iterations (minimum 200 required)',
+                iterations: n,
+                recommendation: 'Run at least 1000 iterations for stable estimates'
+            };
+        }
+
+        const half = Math.floor(n / 2);
+        const threshold = this.options.convergenceThreshold;
+
+        // Split arrays into halves
+        const firstHalfCosts = incCosts.slice(0, half);
+        const secondHalfCosts = incCosts.slice(half);
+        const firstHalfQalys = incQalys.slice(0, half);
+        const secondHalfQalys = incQalys.slice(half);
+
+        // Calculate metrics for each half
+        const meanCost1 = this.mean(firstHalfCosts);
+        const meanCost2 = this.mean(secondHalfCosts);
+        const meanQaly1 = this.mean(firstHalfQalys);
+        const meanQaly2 = this.mean(secondHalfQalys);
+
+        // Calculate P(CE) for each half
+        const pCE1 = this.computeProbCE(firstHalfCosts, firstHalfQalys, wtp);
+        const pCE2 = this.computeProbCE(secondHalfCosts, secondHalfQalys, wtp);
+
+        // Calculate relative changes
+        const costChange = meanCost1 !== 0 ? Math.abs((meanCost2 - meanCost1) / meanCost1) : 0;
+        const qalyChange = meanQaly1 !== 0 ? Math.abs((meanQaly2 - meanQaly1) / meanQaly1) : 0;
+        const pCEChange = Math.abs(pCE2 - pCE1);
+
+        const converged = costChange < threshold &&
+                          qalyChange < threshold &&
+                          pCEChange < threshold;
+
+        // Monte Carlo Standard Error
+        const mcse_costs = this.sd(incCosts) / Math.sqrt(n);
+        const mcse_qalys = this.sd(incQalys) / Math.sqrt(n);
+
+        return {
+            converged: converged,
+            iterations: n,
+            metrics: {
+                cost_relative_change: costChange,
+                qaly_relative_change: qalyChange,
+                prob_ce_absolute_change: pCEChange
+            },
+            monte_carlo_se: {
+                costs: mcse_costs,
+                qalys: mcse_qalys
+            },
+            threshold: threshold,
+            recommendation: converged
+                ? 'PSA has converged. Results are stable.'
+                : `Consider running more iterations. Cost change: ${(costChange*100).toFixed(2)}%, QALY change: ${(qalyChange*100).toFixed(2)}%, P(CE) change: ${(pCEChange*100).toFixed(2)}%`
+        };
     }
 }
 
@@ -1005,16 +1112,51 @@ class DSAEngine {
             ...options
         };
         this.markovEngine = new MarkovEngine();
+        this.progressCallback = null;
+    }
+
+    /**
+     * Set progress callback for UI updates
+     * @param {Function} callback - Function receiving (current, total) arguments
+     */
+    onProgress(callback) {
+        this.progressCallback = callback;
+    }
+
+    /**
+     * Report progress to callback if set
+     */
+    reportProgress(current, total) {
+        if (this.progressCallback) {
+            this.progressCallback(current, total);
+        }
     }
 
     /**
      * Run one-way sensitivity analysis for all parameters
-     * @param {Object} project - HTA project
-     * @param {string} outcomeMetric - 'icer', 'costs', 'qalys', 'nmb'
-     * @param {number} wtp - WTP threshold for NMB calculation
+     * Supports two call signatures for backward compatibility:
+     * 1. run(project, outcomeMetric, wtp) - legacy
+     * 2. run(project, intOverrides, compOverrides, options) - app.js format
      * @returns {Object} DSA results for tornado diagram
      */
-    run(project, outcomeMetric = 'icer', wtp) {
+    run(project, arg2, arg3, arg4) {
+        // Detect call signature
+        let outcomeMetric = 'icer';
+        let wtp = null;
+        let percentageRange = this.options.percentageRange;
+
+        if (typeof arg2 === 'string') {
+            // Legacy signature: run(project, outcomeMetric, wtp)
+            outcomeMetric = arg2 || 'icer';
+            wtp = arg3;
+        } else if (typeof arg4 === 'object' && arg4 !== null) {
+            // App.js signature: run(project, intOverrides, compOverrides, { range, metric })
+            outcomeMetric = arg4.metric || 'icer';
+            if (typeof arg4.range === 'number') {
+                percentageRange = arg4.range;
+            }
+        }
+
         const results = [];
         const parameters = project.parameters || {};
         const settings = project.settings || {};
@@ -1024,21 +1166,26 @@ class DSAEngine {
         const baseline = this.markovEngine.runAllStrategies(project);
         const baselineIcer = this.getOutcome(baseline, outcomeMetric, resolvedWtp);
 
-        // Analyze each parameter
-        for (const [paramId, param] of Object.entries(parameters)) {
-            if (typeof param.value !== 'number') continue;
+        // Get list of numeric parameters
+        const paramEntries = Object.entries(parameters).filter(
+            ([_, param]) => typeof param.value === 'number'
+        );
+        const totalParams = paramEntries.length;
+        let processed = 0;
 
+        // Analyze each parameter
+        for (const [paramId, param] of paramEntries) {
             const baseValue = param.value;
             let lowValue, highValue;
 
-            // Determine range based on distribution or default percentage
+            // Determine range based on distribution or percentage
             if (param.distribution) {
                 const range = this.getDistributionRange(param.distribution, baseValue);
                 lowValue = range.low;
                 highValue = range.high;
             } else {
-                lowValue = baseValue * (1 - this.options.percentageRange);
-                highValue = baseValue * (1 + this.options.percentageRange);
+                lowValue = baseValue * (1 - percentageRange);
+                highValue = baseValue * (1 + percentageRange);
             }
 
             // Clamp probabilities to [0, 1]
@@ -1047,20 +1194,21 @@ class DSAEngine {
                 highValue = Math.min(1, highValue);
             }
 
-            // Run low scenario
-            const lowResults = this.markovEngine.runAllStrategies(project);
-            // Override parameter for low case
-            const lowProject = JSON.parse(JSON.stringify(project));
-            lowProject.parameters[paramId].value = lowValue;
-            const lowRun = this.markovEngine.runAllStrategies(lowProject);
+            // Run low scenario (modify in place, then restore - avoids deep clone)
+            const originalValue = project.parameters[paramId].value;
+            project.parameters[paramId].value = lowValue;
+            const lowRun = this.markovEngine.runAllStrategies(project);
             const lowOutcome = this.getOutcome(lowRun, outcomeMetric, resolvedWtp);
 
             // Run high scenario
-            const highProject = JSON.parse(JSON.stringify(project));
-            highProject.parameters[paramId].value = highValue;
-            const highRun = this.markovEngine.runAllStrategies(highProject);
+            project.parameters[paramId].value = highValue;
+            const highRun = this.markovEngine.runAllStrategies(project);
             const highOutcome = this.getOutcome(highRun, outcomeMetric, resolvedWtp);
 
+            // Restore original value
+            project.parameters[paramId].value = originalValue;
+
+            const swing = Math.abs(highOutcome - lowOutcome);
             results.push({
                 parameter: paramId,
                 label: param.label || paramId,
@@ -1068,16 +1216,25 @@ class DSAEngine {
                 lowValue: lowValue,
                 highValue: highValue,
                 baseOutcome: baselineIcer,
+                // Property names expected by app.js displayDSAResults
+                lowResult: lowOutcome,
+                highResult: highOutcome,
+                swing: swing,
+                // Legacy property names for backward compatibility
                 lowOutcome: lowOutcome,
                 highOutcome: highOutcome,
-                range: Math.abs(highOutcome - lowOutcome),
+                range: swing,
                 minOutcome: Math.min(lowOutcome, highOutcome),
                 maxOutcome: Math.max(lowOutcome, highOutcome)
             });
+
+            // Report progress
+            processed++;
+            this.reportProgress(processed, totalParams);
         }
 
-        // Sort by impact (range)
-        results.sort((a, b) => b.range - a.range);
+        // Sort by impact (swing)
+        results.sort((a, b) => b.swing - a.swing);
 
         return {
             baseline: baselineIcer,
@@ -1166,6 +1323,115 @@ class DSAEngine {
                     high: baseValue * 1.2
                 };
         }
+    }
+
+    /**
+     * Find threshold-crossing value for a parameter (OWSA threshold analysis)
+     * Uses bisection to find the parameter value where ICER crosses WTP threshold
+     * @param {Object} project - HTA project
+     * @param {string} paramId - Parameter ID to analyze
+     * @param {number} wtp - WTP threshold
+     * @param {Object} options - { tolerance, maxIterations }
+     * @returns {Object|null} { thresholdValue, direction, baseValue } or null if no crossing
+     */
+    findThresholdCrossing(project, paramId, wtp, options = {}) {
+        const tolerance = options.tolerance || 0.01;  // 1% tolerance
+        const maxIterations = options.maxIterations || 50;
+        const param = project.parameters[paramId];
+        if (!param || typeof param.value !== 'number') return null;
+
+        const baseValue = param.value;
+        const range = this.getDistributionRange(param.distribution || {}, baseValue);
+
+        // Get baseline ICER
+        const baselineRun = this.markovEngine.runAllStrategies(project);
+        const baselineIcer = this.getOutcome(baselineRun, 'icer', wtp);
+        if (!Number.isFinite(baselineIcer)) return null;
+
+        const baselineCE = baselineIcer <= wtp;
+
+        // Check if threshold crossing exists in range
+        const originalValue = project.parameters[paramId].value;
+
+        project.parameters[paramId].value = range.low;
+        const lowRun = this.markovEngine.runAllStrategies(project);
+        const lowIcer = this.getOutcome(lowRun, 'icer', wtp);
+        const lowCE = Number.isFinite(lowIcer) && lowIcer <= wtp;
+
+        project.parameters[paramId].value = range.high;
+        const highRun = this.markovEngine.runAllStrategies(project);
+        const highIcer = this.getOutcome(highRun, 'icer', wtp);
+        const highCE = Number.isFinite(highIcer) && highIcer <= wtp;
+
+        project.parameters[paramId].value = originalValue;
+
+        // No crossing if both ends have same CE conclusion
+        if (lowCE === highCE) {
+            return null;
+        }
+
+        // Bisection search
+        let lo = range.low, hi = range.high;
+        for (let i = 0; i < maxIterations; i++) {
+            const mid = (lo + hi) / 2;
+            project.parameters[paramId].value = mid;
+            const midRun = this.markovEngine.runAllStrategies(project);
+            const midIcer = this.getOutcome(midRun, 'icer', wtp);
+            const midCE = Number.isFinite(midIcer) && midIcer <= wtp;
+
+            if (Math.abs(hi - lo) / Math.abs(baseValue) < tolerance) {
+                project.parameters[paramId].value = originalValue;
+                return {
+                    thresholdValue: mid,
+                    direction: midIcer > baselineIcer ? 'increases' : 'decreases',
+                    baseValue: baseValue,
+                    baselineIcer: baselineIcer,
+                    thresholdIcer: midIcer,
+                    wtpThreshold: wtp
+                };
+            }
+
+            if (midCE === lowCE) {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+
+        project.parameters[paramId].value = originalValue;
+        return null;
+    }
+
+    /**
+     * Run threshold analysis for all parameters
+     * @param {Object} project - HTA project
+     * @param {number} wtp - WTP threshold
+     * @returns {Array} Parameters with threshold crossings
+     */
+    runThresholdAnalysis(project, wtp) {
+        const parameters = project.parameters || {};
+        const settings = project.settings || {};
+        const resolvedWtp = Number.isFinite(wtp) ? wtp : resolvePrimaryWtp(settings);
+        const results = [];
+
+        for (const [paramId, param] of Object.entries(parameters)) {
+            if (typeof param.value !== 'number') continue;
+
+            const crossing = this.findThresholdCrossing(project, paramId, resolvedWtp);
+            if (crossing) {
+                results.push({
+                    parameter: paramId,
+                    label: param.label || paramId,
+                    ...crossing
+                });
+            }
+        }
+
+        return {
+            wtp: resolvedWtp,
+            crossings: results,
+            summary: `${results.length} of ${Object.keys(parameters).length} parameters have threshold crossings at WTP=${resolvedWtp}`
+        };
     }
 
     /**

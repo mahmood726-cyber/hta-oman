@@ -44,6 +44,7 @@ const ValidationCodes = {
     IMPLAUSIBLE_ICER: 'W012',
     MISSING_DISTRIBUTIONS: 'W013',
     UNREALISTIC_LIFE_YEARS: 'W014',
+    IDENTICAL_STRATEGIES: 'W015',
 
     // Info (I0xx)
     BEST_PRACTICE: 'I001',
@@ -493,6 +494,57 @@ class SemanticValidator {
                 'Set is_comparator: true for the baseline strategy'
             );
         }
+
+        // Check if strategies have any parameter differences
+        const stratEntries = Object.entries(strategies);
+        if (stratEntries.length >= 2) {
+            const allOverrides = stratEntries.map(([_, s]) => s.parameter_overrides || {});
+            const uniqueOverrideKeys = new Set();
+            allOverrides.forEach(o => Object.keys(o).forEach(k => uniqueOverrideKeys.add(k)));
+
+            // If no strategy has any parameter overrides, warn
+            if (uniqueOverrideKeys.size === 0) {
+                this.addIssue(
+                    Severity.WARNING,
+                    ValidationCodes.IDENTICAL_STRATEGIES,
+                    'strategies',
+                    'Strategies have no parameter differences - they will produce identical results',
+                    'Add parameter_overrides to differentiate intervention from comparator (e.g., drug costs, efficacy parameters)'
+                );
+            } else {
+                // Check if all strategies have the same override values
+                let allIdentical = true;
+                for (let i = 1; i < allOverrides.length; i++) {
+                    const prev = allOverrides[i - 1];
+                    const curr = allOverrides[i];
+                    const prevKeys = Object.keys(prev).sort();
+                    const currKeys = Object.keys(curr).sort();
+
+                    if (JSON.stringify(prevKeys) !== JSON.stringify(currKeys)) {
+                        allIdentical = false;
+                        break;
+                    }
+
+                    for (const key of prevKeys) {
+                        if (prev[key] !== curr[key]) {
+                            allIdentical = false;
+                            break;
+                        }
+                    }
+                    if (!allIdentical) break;
+                }
+
+                if (allIdentical && uniqueOverrideKeys.size > 0) {
+                    this.addIssue(
+                        Severity.WARNING,
+                        ValidationCodes.IDENTICAL_STRATEGIES,
+                        'strategies',
+                        'All strategies have identical parameter_overrides - they will produce identical results',
+                        'Ensure intervention and comparator have different parameter values'
+                    );
+                }
+            }
+        }
     }
 
     // ============ WARNING CHECKS ============
@@ -704,7 +756,7 @@ class SemanticValidator {
                 ValidationCodes.TIME_HORIZON_INVALID,
                 'settings.time_horizon',
                 'Time horizon not specified',
-                'Specify time horizon in years. Oman MOH guidance typically requires a lifetime horizon unless justified.'
+                'Specify time horizon in years. HTA submissions typically require a lifetime horizon unless justified.'
             );
             return;
         }
@@ -724,7 +776,7 @@ class SemanticValidator {
                 ValidationCodes.SHORT_TIME_HORIZON,
                 'settings.time_horizon',
                 `Time horizon of ${timeHorizon} years may be too short`,
-                'Oman MOH guidance typically requires a lifetime horizon unless justified'
+                'HTA submissions typically require a lifetime horizon unless justified'
             );
         }
 
@@ -751,7 +803,7 @@ class SemanticValidator {
         const discountCosts = settings.discount_rate_costs;
         const discountQalys = settings.discount_rate_qalys;
 
-        // Oman MOH HTA guidance: 3.0%
+        // Oman HTA methodological guidance: 3.0%
         const guidanceRate = 0.03;
         const tolerance = 0.001;
 
@@ -768,8 +820,8 @@ class SemanticValidator {
                     Severity.INFO,
                     ValidationCodes.NICE_COMPLIANCE,
                     'settings.discount_rate_costs',
-                    `Discount rate ${(discountCosts * 100).toFixed(1)}% differs from Oman MOH HTA guidance (3.0%)`,
-                    'Oman MOH HTA guidance uses 3.0% for costs. Deviation requires justification.'
+                    `Discount rate ${(discountCosts * 100).toFixed(1)}% differs from Oman HTA methodological guidance (3.0%)`,
+                    'Oman HTA methodological guidance uses 3.0% for costs. Deviation requires justification.'
                 );
             }
         }
@@ -787,8 +839,8 @@ class SemanticValidator {
                     Severity.INFO,
                     ValidationCodes.NICE_COMPLIANCE,
                     'settings.discount_rate_qalys',
-                    `Discount rate ${(discountQalys * 100).toFixed(1)}% differs from Oman MOH HTA guidance (3.0%)`,
-                    'Oman MOH HTA guidance uses 3.0% for QALYs. Deviation requires justification.'
+                    `Discount rate ${(discountQalys * 100).toFixed(1)}% differs from Oman HTA methodological guidance (3.0%)`,
+                    'Oman HTA methodological guidance uses 3.0% for QALYs. Deviation requires justification.'
                 );
             }
         }
@@ -821,8 +873,12 @@ class SemanticValidator {
 
                 if (typeof value !== 'number') continue;
 
-                // Mortality rate checks
-                if (label.includes('death') || label.includes('mortality') || paramId.includes('death')) {
+                // Mortality rate checks (skip if it's a hazard ratio or relative risk)
+                const isHazardOrRisk = label.includes('hazard') || label.includes('hr ') ||
+                                       paramId.includes('hr_') || paramId.includes('rr_') ||
+                                       label.includes('ratio') || label.includes('relative');
+
+                if ((label.includes('death') || label.includes('mortality') || paramId.includes('death')) && !isHazardOrRisk) {
                     if (value > 0.5 && !label.includes('annual')) {
                         this.addIssue(
                             Severity.WARNING,
@@ -1070,7 +1126,7 @@ class SemanticValidator {
                 ValidationCodes.NICE_COMPLIANCE,
                 'metadata.conflicts_of_interest',
                 'Conflict of interest statement not provided',
-                'Oman HTA guidance requires disclosure of conflicts of interest.'
+                'Oman HTA methodological guidance requires disclosure of conflicts of interest.'
             );
         }
         if (this.project?.metadata?.public_dossier_available !== true) {
@@ -1079,7 +1135,7 @@ class SemanticValidator {
                 ValidationCodes.NICE_COMPLIANCE,
                 'metadata.public_dossier_available',
                 'Public dossier availability not specified',
-                'Oman HTA guidance expects public availability of HTA dossiers.'
+                'Oman HTA methodological guidance expects public availability of HTA dossiers.'
             );
         } else if (!(this.project?.metadata?.public_dossier_url || '').trim()) {
             this.addIssue(
@@ -1088,6 +1144,84 @@ class SemanticValidator {
                 'metadata.public_dossier_url',
                 'Public dossier URL not provided',
                 'Provide the public dossier URL when availability is confirmed.'
+            );
+        }
+
+        // settings already defined at top of checkNICECompliance via destructuring
+        const perspective = ((settings || {}).perspective || '').toLowerCase();
+        const allowedPerspectives = ['healthcare_system', 'payer', 'provider', 'payer_provider', 'health_system'];
+        if (perspective && !allowedPerspectives.includes(perspective)) {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.perspective',
+                `Perspective '${settings.perspective}' differs from Oman base-case guidance`,
+                'Oman HTA methodological guidance specifies a healthcare payer/provider perspective for the base case.'
+            );
+        } else if (!perspective) {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.perspective',
+                'Perspective not specified',
+                'Oman HTA methodological guidance specifies a healthcare payer/provider perspective for the base case.'
+            );
+        }
+
+        const biaHorizon = settings.bia_horizon_years;
+        if (biaHorizon === undefined) {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.bia_horizon_years',
+                'Budget impact horizon not specified',
+                'Oman HTA methodological guidance specifies a 4-year budget impact horizon.'
+            );
+        } else if (Number(biaHorizon) !== 4) {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.bia_horizon_years',
+                `Budget impact horizon is ${biaHorizon} years`,
+                'Oman HTA methodological guidance specifies a 4-year budget impact horizon.'
+            );
+        }
+
+        const biaDiscount = settings.bia_discount_rate;
+        if (biaDiscount === undefined) {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.bia_discount_rate',
+                'Budget impact discount rate not specified',
+                'Oman HTA methodological guidance specifies no discounting for budget impact.'
+            );
+        } else if (Number(biaDiscount) !== 0) {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.bia_discount_rate',
+                `Budget impact discount rate ${(Number(biaDiscount) * 100).toFixed(1)}%`,
+                'Oman HTA methodological guidance specifies no discounting for budget impact.'
+            );
+        }
+
+        const dsaRange = settings.dsa_range_percent;
+        if (dsaRange === undefined) {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.dsa_range_percent',
+                'DSA range not specified',
+                'Oman HTA methodological guidance requires deterministic sensitivity analysis with +/-10% variation.'
+            );
+        } else if (Number(dsaRange) !== 10) {
+            this.addIssue(
+                Severity.INFO,
+                ValidationCodes.NICE_COMPLIANCE,
+                'settings.dsa_range_percent',
+                `DSA range set to +/-${dsaRange}%`,
+                'Oman HTA methodological guidance requires deterministic sensitivity analysis with +/-10% variation.'
             );
         }
 

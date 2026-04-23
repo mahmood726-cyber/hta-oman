@@ -66,9 +66,14 @@ class MicrosimulationEngine {
 
     /**
      * Set progress callback
+     * Supports property assignment: engine.onProgress = callback
      */
-    onProgress(callback) {
+    set onProgress(callback) {
         this.progressCallback = callback;
+    }
+
+    get onProgress() {
+        return this.progressCallback;
     }
 
     /**
@@ -76,7 +81,8 @@ class MicrosimulationEngine {
      */
     random() {
         if (this.rng) {
-            return this.rng.random();
+            // PCG32 uses nextDouble() for [0, 1) with 53-bit precision
+            return this.rng.nextDouble();
         }
         return Math.random();
     }
@@ -359,31 +365,24 @@ class MicrosimulationEngine {
 
     /**
      * Evaluate expression with patient-specific context
+     * Uses safe ExpressionParser instead of Function() constructor
      */
     evaluateExpression(expr, parameterValues, patient, cycle) {
         if (typeof expr === 'number') return expr;
         if (typeof expr !== 'string') return 0;
 
-        // Check if it's a parameter reference
-        if (parameterValues.hasOwnProperty(expr)) {
+        // Check if it's a simple parameter reference
+        if (Object.hasOwn(parameterValues, expr)) {
             return parameterValues[expr];
         }
 
-        // Build evaluation context
+        // Build evaluation context with numeric values only
         const context = {
             ...parameterValues,
             _age: patient.age + cycle,
             _cycle: cycle,
             _time_in_state: patient.timeInState,
-            _sex: patient.sex === 'male' ? 1 : 0,
-            // Mathematical functions
-            min: Math.min,
-            max: Math.max,
-            exp: Math.exp,
-            log: Math.log,
-            sqrt: Math.sqrt,
-            pow: Math.pow,
-            abs: Math.abs
+            _sex: patient.sex === 'male' ? 1 : 0
         };
 
         // Add tracker values
@@ -395,18 +394,21 @@ class MicrosimulationEngine {
         }
 
         try {
-            // Safe expression evaluation
-            let safeExpr = expr;
-            for (const [key, val] of Object.entries(context)) {
-                if (typeof val === 'number') {
-                    const regex = new RegExp(`\\b${key}\\b`, 'g');
-                    safeExpr = safeExpr.replace(regex, val.toString());
-                }
+            // Use safe ExpressionParser if available
+            if (typeof ExpressionParser !== 'undefined' && ExpressionParser.evaluate) {
+                const result = ExpressionParser.evaluate(expr, context);
+                return typeof result === 'number' && isFinite(result) ? result : 0;
             }
 
-            // Evaluate mathematical expression
-            const result = Function(`"use strict"; return (${safeExpr})`)();
-            return typeof result === 'number' && isFinite(result) ? result : 0;
+            // Fallback: check if it's a simple identifier in context
+            const trimmed = expr.trim();
+            if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed) && Object.hasOwn(context, trimmed)) {
+                return context[trimmed];
+            }
+
+            // Last resort: try to parse as a number
+            const num = parseFloat(expr);
+            return isNaN(num) ? 0 : num;
         } catch (e) {
             return 0;
         }
@@ -483,10 +485,32 @@ class MicrosimulationEngine {
         const discountFactorCosts = 1 / Math.pow(1 + discountCosts, cycle * cycleLength);
         const discountFactorQalys = 1 / Math.pow(1 + discountQalys, cycle * cycleLength);
 
-        // Accumulate outcomes (pro-rated by cycle length)
-        patient.cumulativeCosts += cycleCost * cycleLength * discountFactorCosts;
-        patient.cumulativeQALYs += cycleUtility * cycleLength * discountFactorQalys;
-        patient.cumulativeLYs += cycleLength * discountFactorQalys;
+        // Half-cycle correction factor
+        const timeHorizon = settings.time_horizon || 40;
+        const maxCycles = Math.ceil(timeHorizon / cycleLength);
+        const hccMethod = settings.half_cycle_correction || 'trapezoidal';
+        let hccFactor = 1.0;
+
+        if (hccMethod === 'trapezoidal') {
+            // First and last cycles get half weight
+            if (cycle === 0 || cycle === maxCycles - 1 || !patient.alive) {
+                hccFactor = 0.5;
+            }
+        } else if (hccMethod === 'start') {
+            if (cycle === 0) {
+                hccFactor = 0.5;
+            }
+        } else if (hccMethod === 'end') {
+            if (cycle === maxCycles - 1 || !patient.alive) {
+                hccFactor = 0.5;
+            }
+        }
+        // 'none' - no correction applied (hccFactor stays 1.0)
+
+        // Accumulate outcomes (pro-rated by cycle length and half-cycle correction)
+        patient.cumulativeCosts += cycleCost * cycleLength * discountFactorCosts * hccFactor;
+        patient.cumulativeQALYs += cycleUtility * cycleLength * discountFactorQalys * hccFactor;
+        patient.cumulativeLYs += cycleLength * discountFactorQalys * hccFactor;
 
         // Record history
         if (this.options.recordHistory) {
@@ -550,10 +574,24 @@ class MicrosimulationEngine {
 
     /**
      * Run full microsimulation
+     * Supports two call signatures:
+     * 1. run(project, parameterOverrides) - single override object
+     * 2. run(project, intOverrides, compOverrides) - intervention and comparator overrides
      */
-    async run(project, parameterOverrides = {}) {
+    async run(project, arg2 = {}, arg3 = null) {
         const startTime = performance.now();
         const numPatients = this.options.patients;
+
+        // Detect call signature and build combined parameter overrides
+        let parameterOverrides = {};
+        if (arg3 !== null && typeof arg3 === 'object') {
+            // Called with (project, intOverrides, compOverrides)
+            // Merge intervention overrides (they take priority for intervention arm)
+            parameterOverrides = { ...arg2 };
+        } else {
+            // Called with (project, parameterOverrides)
+            parameterOverrides = arg2 || {};
+        }
 
         // Build parameter values
         const parameterValues = {};
@@ -565,7 +603,7 @@ class MicrosimulationEngine {
 
         // Apply strategy overrides
         for (const [key, value] of Object.entries(parameterOverrides)) {
-            if (typeof value === 'string' && parameterValues.hasOwnProperty(value)) {
+            if (typeof value === 'string' && Object.hasOwn(parameterValues, value)) {
                 parameterValues[key] = parameterValues[value];
             } else if (typeof value === 'number') {
                 parameterValues[key] = value;
@@ -723,7 +761,7 @@ class MicrosimulationEngine {
             this.options.patients = patientsPerIteration;
             const intParams = { ...sampledParams };
             for (const [key, value] of Object.entries(intOverrides)) {
-                if (typeof value === 'string' && sampledParams.hasOwnProperty(value)) {
+                if (typeof value === 'string' && Object.hasOwn(sampledParams, value)) {
                     intParams[key] = sampledParams[value];
                 }
             }
@@ -735,7 +773,7 @@ class MicrosimulationEngine {
             // Run microsim for comparator
             const compParams = { ...sampledParams };
             for (const [key, value] of Object.entries(compOverrides)) {
-                if (typeof value === 'string' && sampledParams.hasOwnProperty(value)) {
+                if (typeof value === 'string' && Object.hasOwn(sampledParams, value)) {
                     compParams[key] = sampledParams[value];
                 }
             }

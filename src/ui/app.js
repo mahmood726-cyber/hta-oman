@@ -15,10 +15,12 @@ var guidanceDefaults = OmanGuidance?.defaults || {
     bia_horizon_years: 4,
     bia_discount_rate: 0,
     wtp_multipliers: [1, 2, 3],
-    placeholder_gdp_per_capita_omr: 8100,
-    gdp_per_capita_year: 2023,
-    gdp_per_capita_source: 'GCC Statistical Centre',
-    gdp_per_capita_confirmed: false
+    placeholder_gdp_per_capita_omr: 0,
+    gdp_per_capita_year: null,
+    gdp_per_capita_source: 'Update with official Oman GDP per capita source',
+    gdp_per_capita_confirmed: false,
+    dsa_range_percent: 10,
+    psa_recommended: true
 };
 
 function normalizeSettings(settings) {
@@ -34,6 +36,8 @@ function normalizeSettings(settings) {
         perspective: s.perspective || guidanceDefaults.perspective,
         bia_horizon_years: s.bia_horizon_years ?? guidanceDefaults.bia_horizon_years,
         bia_discount_rate: s.bia_discount_rate ?? guidanceDefaults.bia_discount_rate,
+        dsa_range_percent: s.dsa_range_percent ?? guidanceDefaults.dsa_range_percent,
+        psa_recommended: s.psa_recommended ?? guidanceDefaults.psa_recommended,
         gdp_per_capita_omr: s.gdp_per_capita_omr,
         gdp_per_capita_year: s.gdp_per_capita_year ?? guidanceDefaults.gdp_per_capita_year,
         gdp_per_capita_source: s.gdp_per_capita_source || guidanceDefaults.gdp_per_capita_source,
@@ -52,6 +56,7 @@ function resolveWtpThresholds(settings) {
     const explicit = Array.isArray(settings?.wtp_thresholds) ? settings.wtp_thresholds : null;
     if (explicit && explicit.length) return explicit;
     const base = settings?.gdp_per_capita_omr || guidanceDefaults.placeholder_gdp_per_capita_omr;
+    if (!Number.isFinite(base) || base <= 0) return [];
     const multipliers = Array.isArray(settings?.wtp_multipliers) && settings.wtp_multipliers.length
         ? settings.wtp_multipliers
         : guidanceDefaults.wtp_multipliers;
@@ -60,7 +65,7 @@ function resolveWtpThresholds(settings) {
 
 function resolvePrimaryWtp(settings) {
     const thresholds = resolveWtpThresholds(settings);
-    return thresholds[0];
+    return thresholds[0] || 0;
 }
 
 function currencyCode(settings) {
@@ -79,7 +84,7 @@ function formatCurrencyValue(value, settings, digits = 0) {
 function formatWtpLabel(wtp, settings) {
     const code = currencyCode(settings);
     const n = Number(wtp);
-    if (!Number.isFinite(n)) return `${code} -`;
+    if (!Number.isFinite(n) || n <= 0) return 'Not set';
     if (Math.abs(n) >= 1000) {
         return `${code} ${(n / 1000).toFixed(0)}k`;
     }
@@ -98,6 +103,18 @@ class HTAApp {
         this.biaResults = null;
         this.currentSection = 'summary';
         this.charts = {};
+
+        // Undo/Redo history
+        this.undoStack = [];
+        this.redoStack = [];
+        this.maxHistorySize = 50;
+
+        // Operation cancellation
+        this.currentOperation = null;
+        this.operationCancelled = false;
+
+        // Comparison mode
+        this.savedAnalyses = [];
 
         this.validator = new HTAValidator();
         this.proofEngine = typeof ProofCarrying !== 'undefined' ? ProofCarrying : null;
@@ -128,6 +145,892 @@ class HTAApp {
         this.setupButtons();
         this.setupTabs();
         this.setupSubmissionMetadata();
+        this.setupUndoRedo();
+        this.initializeNewModules();
+    }
+
+    /**
+     * Initialize new modules from IMPROVEMENT_PLAN_V2
+     */
+    initializeNewModules() {
+        // Phase 3: Model Wizard
+        if (typeof ModelWizard === 'function') {
+            this.modelWizard = new ModelWizard({
+                onComplete: (config) => this.handleWizardComplete(config)
+            });
+        }
+
+        // Phase 3: Results Dashboard
+        if (typeof ResultsDashboard === 'function') {
+            this.resultsDashboard = new ResultsDashboard('dashboard-container');
+        }
+
+        // Phase 4: CHEERS Report Generator
+        if (typeof CHEERSReportGenerator === 'function') {
+            this.cheersGenerator = new CHEERSReportGenerator();
+        }
+
+        // Phase 4: Audit Trail Manager
+        if (typeof AuditTrailManager === 'function') {
+            this.auditTrailManager = new AuditTrailManager({
+                appVersion: '2.0.0',
+                appName: 'HTA-Oman Platform'
+            });
+            this.auditTrailManager.startSession();
+        }
+
+        // Phase 5: Worker PSA Manager
+        if (typeof WorkerPoolManager === 'function') {
+            this.workerPoolManager = new WorkerPoolManager();
+        }
+
+        // Phase 6: Tutorial Engine
+        if (typeof TutorialEngine === 'function') {
+            this.tutorialEngine = new TutorialEngine();
+        }
+
+        // Phase 7: Smart Features (rules-based, not LLM)
+        if (typeof ParameterSuggestionEngine === 'function') {
+            this.parameterSuggester = new ParameterSuggestionEngine();
+        }
+        if (typeof NLSummaryGenerator === 'function') {
+            this.nlSummaryGenerator = new NLSummaryGenerator();
+        }
+        if (typeof ScenarioGenerator === 'function') {
+            this.scenarioGenerator = new ScenarioGenerator();
+        }
+
+        // Setup wizard button if exists
+        const wizardBtn = document.getElementById('btn-open-wizard');
+        if (wizardBtn && this.modelWizard) {
+            wizardBtn.addEventListener('click', () => this.modelWizard.open());
+        }
+
+        // Setup tutorials button if exists
+        const tutorialsBtn = document.getElementById('btn-open-tutorials');
+        if (tutorialsBtn && this.tutorialEngine) {
+            tutorialsBtn.addEventListener('click', () => this.showTutorialMenu());
+        }
+
+        // Setup CHEERS export button
+        const cheersBtn = document.getElementById('btn-export-cheers');
+        if (cheersBtn && this.cheersGenerator) {
+            cheersBtn.addEventListener('click', () => this.exportCHEERSReport());
+        }
+
+        // Setup Reproducibility Certificate button
+        const auditTrailBtn = document.getElementById('btn-export-audit-trail');
+        if (auditTrailBtn && this.auditTrailManager) {
+            auditTrailBtn.addEventListener('click', () => this.exportReproducibilityCertificate());
+        }
+
+        // Phase 8: MCDA Engine
+        if (typeof MCDAEngine !== 'undefined') {
+            this.mcdaEngine = MCDAEngine;
+        }
+
+        // Phase 8: Clinical Parameters Database
+        if (typeof OmanClinicalParameters !== 'undefined') {
+            this.clinicalParams = OmanClinicalParameters;
+        }
+
+        // Phase 8: Internationalization
+        if (typeof I18n !== 'undefined') {
+            this.i18n = I18n.i18n;
+            // Setup language toggle button
+            const langBtn = document.getElementById('btn-lang');
+            if (langBtn) {
+                langBtn.addEventListener('click', () => this.toggleLanguage());
+            }
+        }
+
+        // Setup MCDA button if exists
+        const mcdaBtn = document.getElementById('btn-run-mcda');
+        if (mcdaBtn && this.mcdaEngine) {
+            mcdaBtn.addEventListener('click', () => this.openMCDAAssessment());
+        }
+    }
+
+    /**
+     * Toggle between English and Arabic
+     */
+    toggleLanguage() {
+        if (!this.i18n) return;
+
+        const currentLang = this.i18n.getLanguage();
+        const newLang = currentLang === 'en' ? 'ar' : 'en';
+        this.i18n.setLanguage(newLang);
+
+        // Update UI direction
+        document.documentElement.dir = newLang === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.lang = newLang;
+
+        // Update language button icon
+        const langIcon = document.getElementById('lang-icon');
+        if (langIcon) {
+            langIcon.textContent = newLang === 'ar' ? 'EN' : 'ع';
+        }
+
+        // Translate page elements
+        this.i18n.translatePage();
+
+        this.showToast(newLang === 'ar' ? 'تم التبديل إلى العربية' : 'Switched to English', 'success');
+    }
+
+    /**
+     * Open MCDA assessment interface
+     */
+    openMCDAAssessment() {
+        if (!this.mcdaEngine) {
+            this.showToast('MCDA module not available', 'warning');
+            return;
+        }
+
+        // Create new MCDA analysis
+        const mcda = new this.mcdaEngine.MCDAAnalysis({
+            interventionName: this.project?.metadata?.name || 'New Intervention',
+            comparatorName: 'Standard of Care'
+        });
+
+        // Build UI for scoring
+        this.renderMCDAInterface(mcda);
+    }
+
+    /**
+     * Render MCDA scoring interface
+     */
+    renderMCDAInterface(mcda) {
+        let html = `
+            <div class="mcda-interface">
+                <h3>Multi-Criteria Decision Analysis</h3>
+                <p class="mcda-subtitle">Score the intervention across multiple dimensions</p>
+        `;
+
+        const criteria = mcda.criteria;
+        for (const [domainId, domain] of Object.entries(criteria)) {
+            html += `
+                <div class="mcda-domain">
+                    <h4>${domain.name} <span class="weight-badge">${Math.round(domain.weight * 100)}%</span></h4>
+            `;
+
+            for (const [subId, sub] of Object.entries(domain.subcriteria)) {
+                html += `
+                    <div class="mcda-criterion">
+                        <label for="mcda-${domainId}-${subId}">${sub.name}</label>
+                        <p class="criterion-desc">${sub.description}</p>
+                        <div class="score-slider">
+                            <input type="range" id="mcda-${domainId}-${subId}"
+                                   min="0" max="100" value="50" step="25"
+                                   data-domain="${domainId}" data-sub="${subId}">
+                            <span class="score-value">50</span>
+                        </div>
+                        <textarea id="mcda-just-${domainId}-${subId}"
+                                  placeholder="Justification (optional)"
+                                  class="mcda-justification"></textarea>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+        }
+
+        html += `
+                <div class="mcda-actions">
+                    <button class="btn btn-primary" onclick="app.calculateMCDA()">Calculate Score</button>
+                    <button class="btn btn-secondary" onclick="app.closeModal()">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        this.showModal('MCDA Assessment', html);
+        this.currentMCDA = mcda;
+
+        // Add event listeners to sliders
+        document.querySelectorAll('.mcda-criterion input[type="range"]').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                e.target.nextElementSibling.textContent = e.target.value;
+            });
+        });
+    }
+
+    /**
+     * Calculate MCDA results from interface
+     */
+    calculateMCDA() {
+        if (!this.currentMCDA) return;
+
+        // Collect scores from interface
+        document.querySelectorAll('.mcda-criterion input[type="range"]').forEach(slider => {
+            const domainId = slider.dataset.domain;
+            const subId = slider.dataset.sub;
+            const score = parseInt(slider.value);
+            const justification = document.getElementById(`mcda-just-${domainId}-${subId}`)?.value || '';
+
+            this.currentMCDA.setScore(domainId, subId, score, justification);
+        });
+
+        // Calculate results
+        const results = this.currentMCDA.calculateResults();
+
+        // Display results
+        this.displayMCDAResults(results);
+    }
+
+    /**
+     * Display MCDA results
+     */
+    displayMCDAResults(results) {
+        const summary = this.currentMCDA.generateSummary();
+
+        let html = `
+            <div class="mcda-results">
+                <div class="mcda-score-circle" style="border-color: ${results.color}">
+                    <span class="score-number">${results.overallScore.toFixed(0)}</span>
+                    <span class="score-label">/100</span>
+                </div>
+
+                <h3 style="color: ${results.color}">${results.recommendation}</h3>
+
+                <div class="mcda-domain-scores">
+                    <h4>Domain Scores</h4>
+                    <table>
+                        <tr><th>Domain</th><th>Weight</th><th>Score</th></tr>
+        `;
+
+        for (const [id, domain] of Object.entries(results.domainScores)) {
+            html += `<tr>
+                <td>${domain.name}</td>
+                <td>${Math.round(domain.weight * 100)}%</td>
+                <td>${domain.score.toFixed(0)}</td>
+            </tr>`;
+        }
+
+        html += `
+                    </table>
+                </div>
+
+                <div class="mcda-strengths-weaknesses">
+                    <div class="strengths">
+                        <h4>Key Strengths</h4>
+                        <ul>${summary.strengths.map(s => `<li>${s}</li>`).join('')}</ul>
+                    </div>
+                    <div class="weaknesses">
+                        <h4>Areas of Concern</h4>
+                        <ul>${summary.weaknesses.map(w => `<li>${w}</li>`).join('')}</ul>
+                    </div>
+                </div>
+
+                <div class="mcda-actions">
+                    <button class="btn btn-primary" onclick="app.exportMCDAReport()">Export Report</button>
+                    <button class="btn btn-secondary" onclick="app.closeModal()">Close</button>
+                </div>
+            </div>
+        `;
+
+        this.showModal('MCDA Results', html);
+    }
+
+    /**
+     * Export MCDA report
+     */
+    exportMCDAReport() {
+        if (!this.currentMCDA) return;
+
+        const report = this.mcdaEngine.generateMCDAReport(this.currentMCDA, 'markdown');
+
+        const blob = new Blob([report], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'MCDA_Report.md';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        this.showToast('MCDA report exported', 'success');
+    }
+
+    /**
+     * Export reproducibility certificate
+     */
+    exportReproducibilityCertificate() {
+        if (!this.auditTrailManager) {
+            this.showToast('Audit trail not available', 'warning');
+            return;
+        }
+
+        if (!this.project || !this.results) {
+            this.showToast('Run analysis first', 'warning');
+            return;
+        }
+
+        try {
+            const certificate = this.auditTrailManager.generateReproducibilityCertificate(
+                this.results,
+                this.project
+            );
+
+            // Download as JSON
+            const blob = new Blob([JSON.stringify(certificate, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reproducibility_certificate_${certificate.certificate_id}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            this.showToast('Reproducibility certificate exported', 'success');
+        } catch (e) {
+            this.showToast(`Export error: ${e.message}`, 'error');
+        }
+    }
+
+    /**
+     * Handle wizard completion
+     */
+    handleWizardComplete(config) {
+        if (!config) return;
+
+        // Convert wizard config to project format
+        this.project = this.convertWizardToProject(config);
+        this.renderProject();
+        this.showToast('Model created from wizard', 'success');
+
+        // Log to audit trail
+        if (this.auditTrailManager) {
+            this.auditTrailManager.logChange(
+                'create',
+                'project',
+                'model',
+                null,
+                this.project.metadata?.name || 'New Model',
+                { source: 'wizard', diseaseArea: config.diseaseArea }
+            );
+        }
+    }
+
+    /**
+     * Convert wizard configuration to project format
+     */
+    convertWizardToProject(config) {
+        const states = {};
+        config.states.forEach((s, i) => {
+            states[`state_${i}`] = {
+                name: s.name,
+                is_absorbing: s.isAbsorbing,
+                initial_probability: i === 0 ? 1 : 0,
+                cost: parseFloat(s.cost) || 0,
+                utility: parseFloat(s.utility) || 1
+            };
+        });
+
+        return {
+            metadata: {
+                name: config.modelName,
+                version: '1.0.0',
+                created: new Date().toISOString(),
+                author: 'HTA Platform Wizard'
+            },
+            settings: {
+                model_type: config.modelType,
+                time_horizon: config.timeHorizon,
+                cycle_length: config.cycleLength,
+                discount_rate_costs: 0.035,
+                discount_rate_effects: 0.035,
+                currency: 'OMR',
+                half_cycle_correction: true
+            },
+            states,
+            parameters: {},
+            transitions: {},
+            strategies: {
+                intervention: { name: 'Intervention', is_comparator: false },
+                comparator: { name: 'Comparator', is_comparator: true }
+            }
+        };
+    }
+
+    /**
+     * Show tutorial selection menu
+     */
+    showTutorialMenu() {
+        if (!this.tutorialEngine) return;
+
+        const modules = this.tutorialEngine.getAllModules();
+        const progress = this.tutorialEngine.progress;
+
+        let html = '<div class="tutorial-menu">';
+        html += '<h3>📚 HTA Tutorials</h3>';
+        html += '<div class="tutorial-list">';
+
+        modules.forEach(mod => {
+            const modProgress = progress.getModuleProgress(mod.id);
+            const completedLessons = mod.lessons.filter(l =>
+                progress.completedLessons.includes(l.id)
+            ).length;
+            const percent = Math.round((completedLessons / mod.lessons.length) * 100);
+
+            html += `
+                <div class="tutorial-item" onclick="app.startTutorial('${mod.id}')">
+                    <div class="tutorial-icon">${mod.icon}</div>
+                    <div class="tutorial-info">
+                        <h4>${mod.title}</h4>
+                        <p>${mod.description}</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${percent}%"></div>
+                        </div>
+                        <span class="progress-text">${completedLessons}/${mod.lessons.length} lessons</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div></div>';
+
+        this.showModal('Tutorials', html);
+    }
+
+    /**
+     * Start a tutorial module
+     */
+    startTutorial(moduleId) {
+        if (!this.tutorialEngine) return;
+        this.closeModal();
+
+        const lesson = this.tutorialEngine.startModule(moduleId);
+        if (lesson) {
+            this.renderTutorialLesson(lesson);
+        }
+    }
+
+    /**
+     * Render tutorial lesson content
+     */
+    renderTutorialLesson(lesson) {
+        if (!lesson) return;
+
+        let html = `
+            <div class="tutorial-lesson">
+                <h3>${lesson.title}</h3>
+                <div class="lesson-content">${lesson.content}</div>
+        `;
+
+        if (lesson.quiz) {
+            html += '<div class="lesson-quiz">';
+            html += '<h4>Quick Check</h4>';
+            html += `<p>${lesson.quiz.question}</p>`;
+            html += '<div class="quiz-options">';
+            lesson.quiz.options.forEach((opt, i) => {
+                html += `<button class="quiz-option" onclick="app.checkQuizAnswer(${i})">${opt}</button>`;
+            });
+            html += '</div></div>';
+            this.currentQuiz = lesson.quiz;
+        }
+
+        html += `
+            <div class="lesson-nav">
+                <button onclick="app.previousLesson()">← Previous</button>
+                <button onclick="app.nextLesson()">Next →</button>
+            </div>
+            </div>
+        `;
+
+        this.showModal(lesson.title, html);
+    }
+
+    /**
+     * Check quiz answer
+     */
+    checkQuizAnswer(index) {
+        if (!this.currentQuiz) return;
+
+        const correct = index === this.currentQuiz.correct;
+        if (correct) {
+            this.showToast('Correct! ' + (this.currentQuiz.explanation || ''), 'success');
+            this.tutorialEngine?.completeCurrentLesson();
+        } else {
+            this.showToast('Try again!', 'warning');
+        }
+    }
+
+    /**
+     * Navigate to next lesson
+     */
+    nextLesson() {
+        if (!this.tutorialEngine) return;
+        const lesson = this.tutorialEngine.nextLesson();
+        if (lesson) {
+            this.closeModal();
+            this.renderTutorialLesson(lesson);
+        } else {
+            this.closeModal();
+            this.showToast('Module complete!', 'success');
+        }
+    }
+
+    /**
+     * Navigate to previous lesson
+     */
+    previousLesson() {
+        if (!this.tutorialEngine) return;
+        const lesson = this.tutorialEngine.previousLesson();
+        if (lesson) {
+            this.closeModal();
+            this.renderTutorialLesson(lesson);
+        }
+    }
+
+    /**
+     * Export CHEERS 2022 compliant report
+     */
+    exportCHEERSReport() {
+        if (!this.cheersGenerator) {
+            this.showToast('CHEERS generator not available', 'warning');
+            return;
+        }
+
+        if (!this.project || !this.results) {
+            this.showToast('Run analysis first', 'warning');
+            return;
+        }
+
+        try {
+            const analysisData = {
+                project: this.project,
+                results: this.results,
+                psaResults: this.psaResults,
+                dsaResults: this.dsaResults,
+                biaResults: this.biaResults
+            };
+
+            this.cheersGenerator.setAnalysis(analysisData, {
+                authors: [{ name: 'HTA Analyst', affiliation: 'Ministry of Health, Oman' }],
+                title: this.project.metadata?.name || 'Cost-Effectiveness Analysis',
+                submissionType: 'hta_submission'
+            });
+
+            const markdown = this.cheersGenerator.generateReport('markdown');
+
+            // Download as file
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'CHEERS_Report.md';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            this.showToast('CHEERS report exported', 'success');
+
+            // Log to audit
+            if (this.auditTrailManager) {
+                this.auditTrailManager.logExport('CHEERS Report', 'markdown', markdown.length);
+            }
+        } catch (e) {
+            this.showToast(`Export error: ${e.message}`, 'error');
+        }
+    }
+
+    /**
+     * Show modal dialog
+     */
+    showModal(title, content) {
+        let modal = document.getElementById('app-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'app-modal';
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title"></h3>
+                        <button class="modal-close" onclick="app.closeModal()">×</button>
+                    </div>
+                    <div class="modal-body"></div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        modal.querySelector('.modal-title').textContent = title;
+        modal.querySelector('.modal-body').innerHTML = content;
+        modal.style.display = 'flex';
+    }
+
+    /**
+     * Close modal dialog
+     */
+    closeModal() {
+        const modal = document.getElementById('app-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // ============ UNDO/REDO SYSTEM ============
+
+    setupUndoRedo() {
+        const undoBtn = document.getElementById('btn-undo');
+        const redoBtn = document.getElementById('btn-redo');
+
+        if (undoBtn) {
+            undoBtn.addEventListener('click', () => this.undo());
+        }
+        if (redoBtn) {
+            redoBtn.addEventListener('click', () => this.redo());
+        }
+    }
+
+    saveState(description = 'Change') {
+        if (!this.project) return;
+
+        // Save current state to undo stack
+        this.undoStack.push({
+            description,
+            state: JSON.parse(JSON.stringify(this.project)),
+            timestamp: Date.now()
+        });
+
+        // Limit history size
+        if (this.undoStack.length > this.maxHistorySize) {
+            this.undoStack.shift();
+        }
+
+        // Clear redo stack when new change is made
+        this.redoStack = [];
+
+        this.updateUndoRedoButtons();
+    }
+
+    undo() {
+        if (this.undoStack.length === 0) {
+            this.showToast('Nothing to undo', 'info');
+            return;
+        }
+
+        // Save current state to redo stack
+        if (this.project) {
+            this.redoStack.push({
+                description: 'Redo',
+                state: JSON.parse(JSON.stringify(this.project)),
+                timestamp: Date.now()
+            });
+        }
+
+        // Restore previous state
+        const previous = this.undoStack.pop();
+        this.project = previous.state;
+        this.showToast(`Undid: ${previous.description}`, 'info');
+
+        // Update UI
+        this.updateSummary();
+        this.updateUndoRedoButtons();
+    }
+
+    redo() {
+        if (this.redoStack.length === 0) {
+            this.showToast('Nothing to redo', 'info');
+            return;
+        }
+
+        // Save current state to undo stack
+        if (this.project) {
+            this.undoStack.push({
+                description: 'Undo',
+                state: JSON.parse(JSON.stringify(this.project)),
+                timestamp: Date.now()
+            });
+        }
+
+        // Restore next state
+        const next = this.redoStack.pop();
+        this.project = next.state;
+        this.showToast('Redid change', 'info');
+
+        // Update UI
+        this.updateSummary();
+        this.updateUndoRedoButtons();
+    }
+
+    updateUndoRedoButtons() {
+        const undoBtn = document.getElementById('btn-undo');
+        const redoBtn = document.getElementById('btn-redo');
+
+        if (undoBtn) {
+            undoBtn.disabled = this.undoStack.length === 0;
+            undoBtn.title = this.undoStack.length > 0
+                ? `Undo: ${this.undoStack[this.undoStack.length - 1].description} (Ctrl+Z)`
+                : 'Nothing to undo (Ctrl+Z)';
+        }
+        if (redoBtn) {
+            redoBtn.disabled = this.redoStack.length === 0;
+            redoBtn.title = this.redoStack.length > 0
+                ? 'Redo (Ctrl+Y)'
+                : 'Nothing to redo (Ctrl+Y)';
+        }
+    }
+
+    // ============ OPERATION CANCELLATION ============
+
+    cancelOperation() {
+        this.operationCancelled = true;
+        if (this.currentOperation) {
+            this.showToast('Operation cancelled', 'warning');
+        }
+    }
+
+    // ============ COMPARISON MODE ============
+
+    saveAnalysisForComparison() {
+        if (!this.results && !this.psaResults) {
+            this.showToast('No analysis results to save. Run an analysis first.', 'warning');
+            return;
+        }
+
+        const nameInput = document.getElementById('compare-save-name');
+        const name = nameInput?.value?.trim() || `Analysis ${this.savedAnalyses.length + 1}`;
+
+        const analysis = {
+            id: Date.now(),
+            name,
+            timestamp: new Date().toISOString(),
+            projectName: this.project?.metadata?.name || this.project?.name || 'Unknown',
+            results: this.results ? JSON.parse(JSON.stringify(this.results)) : null,
+            psaResults: this.psaResults ? {
+                summary: this.psaResults.summary,
+                primary_wtp: this.psaResults.primary_wtp
+            } : null,
+            settings: this.getGuidanceSettings()
+        };
+
+        this.savedAnalyses.push(analysis);
+        if (nameInput) nameInput.value = '';
+
+        this.updateComparisonUI();
+        this.showToast(`Saved: ${name}`, 'success');
+    }
+
+    deleteComparisonAnalysis(id) {
+        this.savedAnalyses = this.savedAnalyses.filter(a => a.id !== id);
+        this.updateComparisonUI();
+        this.showToast('Analysis removed', 'info');
+    }
+
+    updateComparisonUI() {
+        const listEl = document.getElementById('compare-saved-list');
+        const resultsEl = document.getElementById('compare-results');
+
+        if (!listEl) return;
+
+        if (this.savedAnalyses.length === 0) {
+            listEl.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <h4>No Saved Analyses</h4>
+                    <p>Run a base case or PSA analysis, then save it here to compare different scenarios.</p>
+                    <button class="btn btn-secondary btn-sm" onclick="document.querySelector('[data-section=run-engine]').click()">Go to Run Engine</button>
+                </div>
+            `;
+            if (resultsEl) {
+                resultsEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚖️</div>
+                        <h4>Ready to Compare</h4>
+                        <p>Save at least two analyses above to see a side-by-side comparison of costs, QALYs, and ICERs.</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        // Render saved analyses list
+        let listHtml = '<div style="display: grid; gap: 12px;">';
+        for (const analysis of this.savedAnalyses) {
+            const icer = analysis.results?.icer;
+            const icerText = icer !== undefined && icer !== null
+                ? (icer < 0 ? 'Dominates' : this.formatCurrency(icer, 0) + '/QALY')
+                : 'N/A';
+            const probCE = analysis.psaResults?.summary?.prob_ce_primary;
+            const probText = probCE !== undefined ? `${(probCE * 100).toFixed(1)}%` : 'N/A';
+
+            listHtml += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;">
+                    <div>
+                        <strong>${analysis.name}</strong>
+                        <div style="font-size: 12px; color: var(--text-muted);">
+                            ${analysis.projectName} • ${new Date(analysis.timestamp).toLocaleString()}
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="text-align: right;">
+                            <div style="font-size: 13px;">ICER: <strong>${icerText}</strong></div>
+                            <div style="font-size: 12px; color: var(--text-muted);">P(CE): ${probText}</div>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="window.app.deleteComparisonAnalysis(${analysis.id})" title="Remove">✕</button>
+                    </div>
+                </div>
+            `;
+        }
+        listHtml += '</div>';
+        listEl.innerHTML = listHtml;
+
+        // Render comparison table if we have at least 2 analyses
+        if (this.savedAnalyses.length >= 2 && resultsEl) {
+            let tableHtml = `
+                <div style="overflow-x: auto;">
+                    <table class="data-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                ${this.savedAnalyses.map(a => `<th>${a.name}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Total Cost (Intervention)</strong></td>
+                                ${this.savedAnalyses.map(a => `<td>${a.results?.intervention?.total_costs !== undefined ? this.formatCurrency(a.results.intervention.total_costs, 0) : 'N/A'}</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Total Cost (Comparator)</strong></td>
+                                ${this.savedAnalyses.map(a => `<td>${a.results?.comparator?.total_costs !== undefined ? this.formatCurrency(a.results.comparator.total_costs, 0) : 'N/A'}</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Incremental Cost</strong></td>
+                                ${this.savedAnalyses.map(a => `<td>${a.results?.incremental_costs !== undefined ? this.formatCurrency(a.results.incremental_costs, 0) : 'N/A'}</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Incremental QALYs</strong></td>
+                                ${this.savedAnalyses.map(a => `<td>${a.results?.incremental_qalys !== undefined ? a.results.incremental_qalys.toFixed(3) : 'N/A'}</td>`).join('')}
+                            </tr>
+                            <tr style="background: var(--bg);">
+                                <td><strong>ICER</strong></td>
+                                ${this.savedAnalyses.map(a => {
+                                    const icer = a.results?.icer;
+                                    if (icer === undefined || icer === null) return '<td>N/A</td>';
+                                    if (icer < 0) return '<td style="color: var(--success);"><strong>Dominates</strong></td>';
+                                    return `<td><strong>${this.formatCurrency(icer, 0)}/QALY</strong></td>`;
+                                }).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>P(Cost-Effective)</strong></td>
+                                ${this.savedAnalyses.map(a => {
+                                    const prob = a.psaResults?.summary?.prob_ce_primary;
+                                    if (prob === undefined) return '<td>N/A</td>';
+                                    const color = prob >= 0.9 ? 'var(--success)' : (prob >= 0.5 ? 'var(--warning)' : 'var(--error)');
+                                    return `<td style="color: ${color};"><strong>${(prob * 100).toFixed(1)}%</strong></td>`;
+                                }).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Mean ICER (PSA)</strong></td>
+                                ${this.savedAnalyses.map(a => `<td>${a.psaResults?.summary?.mean_icer !== undefined ? this.formatCurrency(a.psaResults.summary.mean_icer, 0) : 'N/A'}</td>`).join('')}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            resultsEl.innerHTML = tableHtml;
+        } else if (resultsEl) {
+            resultsEl.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Save at least two analyses to see a comparison.</p>';
+        }
     }
 
     getGuidanceSettings() {
@@ -164,16 +1067,23 @@ class HTAApp {
         this.project.settings = { ...this.project.settings, ...settings };
 
         const primaryWtp = this.getPrimaryWtp();
-        for (const id of ['evpi-wtp', 'evppi-wtp']) {
-            const input = document.getElementById(id);
-            if (input && (!input.value || Number(input.value) === 30000)) {
-                input.value = String(Math.round(primaryWtp));
+        if (primaryWtp > 0) {
+            for (const id of ['evpi-wtp', 'evppi-wtp']) {
+                const input = document.getElementById(id);
+                if (input && (!input.value || Number(input.value) === 30000)) {
+                    input.value = String(Math.round(primaryWtp));
+                }
             }
         }
 
         const desDiscount = document.getElementById('des-discount');
         if (desDiscount && (!desDiscount.value || Number(desDiscount.value) === 0.035)) {
             desDiscount.value = String(settings.discount_rate_costs);
+        }
+
+        const dsaRange = document.getElementById('dsa-range');
+        if (dsaRange && (!dsaRange.value || Number(dsaRange.value) === 20)) {
+            dsaRange.value = String(settings.dsa_range_percent ?? 10);
         }
 
         const biaYears = document.getElementById('bia-years');
@@ -233,6 +1143,12 @@ class HTAApp {
             if (biaDiscount) biaDiscount.value = (value * 100).toFixed(1);
         });
 
+        bind('dsa-range', () => {
+            if (!this.project) return;
+            const value = Number(document.getElementById('dsa-range').value || 0);
+            this.updateProjectSettings({ dsa_range_percent: value });
+        });
+
         bind('meta-coi', () => {
             if (!this.project) return;
             const value = document.getElementById('meta-coi').value || '';
@@ -260,6 +1176,9 @@ class HTAApp {
             this.biaResults = null;
             const resultsEl = document.getElementById('bia-results');
             if (resultsEl) resultsEl.style.display = 'none';
+        }
+        if ('dsa_range_percent' in patch) {
+            this.dsaResults = null;
         }
         this.applyGuidanceToUI();
         this.populateSummary();
@@ -317,6 +1236,20 @@ class HTAApp {
         }
         if (Number.isFinite(settings.bia_discount_rate) && settings.bia_discount_rate !== 0) {
             issues.push({ severity: 'warning', message: 'Budget impact discount rate differs from 0%.' });
+        }
+
+        if (!Number.isFinite(settings.dsa_range_percent)) {
+            issues.push({ severity: 'warning', message: 'DSA range is missing. Oman guidance expects +/-10%.' });
+        } else if (settings.dsa_range_percent !== 10) {
+            issues.push({ severity: 'warning', message: `DSA range differs from +/-10% (currently +/-${settings.dsa_range_percent}%).` });
+        }
+
+        const perspective = (settings.perspective || '').toLowerCase();
+        const allowedPerspectives = ['healthcare_system', 'payer', 'provider', 'payer_provider', 'health_system'];
+        if (perspective && !allowedPerspectives.includes(perspective)) {
+            issues.push({ severity: 'warning', message: `Perspective '${settings.perspective}' differs from Oman base-case guidance.` });
+        } else if (!perspective) {
+            issues.push({ severity: 'warning', message: 'Perspective is missing. Oman guidance expects a payer/provider base case.' });
         }
 
         return issues;
@@ -570,12 +1503,14 @@ class HTAApp {
                 perspective: guidanceDefaults.perspective,
                 bia_horizon_years: guidanceDefaults.bia_horizon_years,
                 bia_discount_rate: guidanceDefaults.bia_discount_rate,
+                dsa_range_percent: guidanceDefaults.dsa_range_percent,
                 starting_age: 55,
                 gdp_per_capita_omr: guidanceDefaults.placeholder_gdp_per_capita_omr,
                 gdp_per_capita_year: guidanceDefaults.gdp_per_capita_year,
                 gdp_per_capita_source: guidanceDefaults.gdp_per_capita_source,
                 gdp_per_capita_confirmed: guidanceDefaults.gdp_per_capita_confirmed,
-                wtp_multipliers: guidanceDefaults.wtp_multipliers
+                wtp_multipliers: guidanceDefaults.wtp_multipliers,
+                wtp_thresholds: [7800, 15600, 23400]
             },
             model: {
                 type: "markov_cohort"
@@ -808,6 +1743,310 @@ class HTAApp {
         if (niceBtn) {
             niceBtn.addEventListener('click', () => this.exportNICEReport());
         }
+
+        // Compare analyses button
+        const compareSaveBtn = document.getElementById('btn-compare-save');
+        if (compareSaveBtn) {
+            compareSaveBtn.addEventListener('click', () => this.saveAnalysisForComparison());
+        }
+
+        // Advanced Meta-Analysis buttons (Phase 3)
+        this.setupAdvancedAnalysisButtons();
+    }
+
+    /**
+     * Setup handlers for advanced analysis buttons
+     */
+    setupAdvancedAnalysisButtons() {
+        // Three-Level Meta-Analysis
+        const btn3Level = document.getElementById('btn-run-3level');
+        if (btn3Level) {
+            btn3Level.addEventListener('click', () => this.runAdvancedAnalysis('3level', 'Three-Level Meta-Analysis'));
+        }
+
+        // Multivariate Meta-Analysis
+        const btnMV = document.getElementById('btn-run-mv');
+        if (btnMV) {
+            btnMV.addEventListener('click', () => this.runAdvancedAnalysis('mv', 'Multivariate Meta-Analysis'));
+        }
+
+        // Dose-Response Meta-Analysis
+        const btnDR = document.getElementById('btn-run-dr');
+        if (btnDR) {
+            btnDR.addEventListener('click', () => this.runAdvancedAnalysis('dr', 'Dose-Response Meta-Analysis'));
+        }
+
+        // Complex NMA
+        const btnCNMA = document.getElementById('btn-run-cnma');
+        if (btnCNMA) {
+            btnCNMA.addEventListener('click', () => this.runAdvancedAnalysis('cnma', 'Component NMA'));
+        }
+
+        // Publication Bias
+        const btnPubBias = document.getElementById('btn-run-pub-bias');
+        if (btnPubBias) {
+            btnPubBias.addEventListener('click', () => this.runPublicationBiasAnalysis());
+        }
+
+        // Advanced Publication Bias
+        const btnAdvPB = document.getElementById('btn-run-advanced-pb');
+        if (btnAdvPB) {
+            btnAdvPB.addEventListener('click', () => this.runAdvancedPublicationBias());
+        }
+
+        // ROB-2 Assessment
+        const btnROB2 = document.getElementById('btn-assess-rob2');
+        if (btnROB2) {
+            btnROB2.addEventListener('click', () => this.runRiskOfBiasAssessment('rob2'));
+        }
+
+        // GRADE Assessment
+        const btnGRADE = document.getElementById('btn-assess-grade');
+        if (btnGRADE) {
+            btnGRADE.addEventListener('click', () => this.runGRADEAssessment());
+        }
+
+        // IPD Meta-Analysis
+        const btnIPD = document.getElementById('btn-run-ipd');
+        if (btnIPD) {
+            btnIPD.addEventListener('click', () => this.runIPDMetaAnalysis());
+        }
+
+        // DTA (Diagnostic Test Accuracy)
+        const btnDTA = document.getElementById('btn-run-dta');
+        if (btnDTA) {
+            btnDTA.addEventListener('click', () => this.runDTAAnalysis());
+        }
+
+        // Fabrication Detection (GRIM/SPRITE)
+        const btnFabrication = document.getElementById('btn-run-fabrication');
+        if (btnFabrication) {
+            btnFabrication.addEventListener('click', () => this.runFabricationDetection());
+        }
+
+        // Mendelian Randomization
+        const btnMR = document.getElementById('btn-run-mr');
+        if (btnMR) {
+            btnMR.addEventListener('click', () => this.runMendelianRandomization());
+        }
+
+        // Threshold Analysis
+        const btnThreshold = document.getElementById('btn-run-threshold');
+        if (btnThreshold) {
+            btnThreshold.addEventListener('click', () => this.runThresholdAnalysis());
+        }
+    }
+
+    /**
+     * Generic handler for advanced analysis types
+     */
+    runAdvancedAnalysis(type, label) {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+        this.showToast(`${label} - Feature under development`, 'info');
+        this.log(`${label} analysis requested. This feature requires additional data input.`);
+    }
+
+    /**
+     * Run publication bias analysis
+     */
+    runPublicationBiasAnalysis() {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+
+        const FrontierMeta = window.FrontierMeta || {};
+        if (!FrontierMeta.AdvancedPublicationBias) {
+            this.showToast('Publication bias module not available', 'error');
+            return;
+        }
+
+        this.showToast('Publication bias analysis - Feature under development', 'info');
+        this.log('Publication bias analysis requested.');
+    }
+
+    /**
+     * Run advanced publication bias analysis (RoBMA, etc.)
+     */
+    runAdvancedPublicationBias() {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+
+        const FrontierMeta = window.FrontierMeta || {};
+        if (!FrontierMeta.AdvancedPublicationBias) {
+            this.showToast('Advanced publication bias module not available', 'error');
+            return;
+        }
+
+        try {
+            const analyzer = new FrontierMeta.AdvancedPublicationBias();
+            this.showToast('Advanced publication bias analysis - Feature under development', 'info');
+            this.log('Advanced publication bias analysis initialized.');
+        } catch (err) {
+            this.showToast(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    /**
+     * Run risk of bias assessment
+     */
+    runRiskOfBiasAssessment(tool = 'rob2') {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+
+        this.showToast(`Risk of Bias Assessment (${tool.toUpperCase()}) - Feature under development`, 'info');
+        this.log(`Risk of bias assessment requested using ${tool.toUpperCase()} tool.`);
+    }
+
+    /**
+     * Run GRADE/CINeMA assessment
+     */
+    runGRADEAssessment() {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+
+        const FrontierMeta = window.FrontierMeta || {};
+        if (!FrontierMeta.GRADEMethodology) {
+            this.showToast('GRADE methodology module not available', 'error');
+            return;
+        }
+
+        try {
+            const grader = new FrontierMeta.GRADEMethodology();
+            this.showToast('GRADE assessment - Feature under development', 'info');
+            this.log('GRADE/CINeMA assessment initialized.');
+        } catch (err) {
+            this.showToast(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    /**
+     * Run IPD meta-analysis
+     */
+    runIPDMetaAnalysis() {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+
+        const FrontierMeta = window.FrontierMeta || {};
+        if (!FrontierMeta.IPDMetaAnalysis) {
+            this.showToast('IPD meta-analysis module not available', 'error');
+            return;
+        }
+
+        try {
+            const ipdEngine = new FrontierMeta.IPDMetaAnalysis();
+            this.showToast('IPD Meta-Analysis requires individual patient data input', 'info');
+            this.log('IPD meta-analysis initialized. Please provide IPD data.');
+        } catch (err) {
+            this.showToast(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    /**
+     * Run DTA (Diagnostic Test Accuracy) analysis
+     */
+    runDTAAnalysis() {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+
+        const FrontierMeta = window.FrontierMeta || {};
+        if (!FrontierMeta.DTAMetaAnalysis) {
+            this.showToast('DTA meta-analysis module not available', 'error');
+            return;
+        }
+
+        try {
+            const dtaEngine = new FrontierMeta.DTAMetaAnalysis();
+            this.showToast('DTA Analysis requires diagnostic accuracy data (TP, FP, TN, FN)', 'info');
+            this.log('DTA meta-analysis initialized. Please provide diagnostic accuracy data.');
+        } catch (err) {
+            this.showToast(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    /**
+     * Run fabrication detection (GRIM/SPRITE tests)
+     */
+    runFabricationDetection() {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+
+        const FrontierMeta = window.FrontierMeta || {};
+        if (!FrontierMeta.DataFabricationDetection) {
+            this.showToast('Fabrication detection module not available', 'error');
+            return;
+        }
+
+        try {
+            const detector = new FrontierMeta.DataFabricationDetection();
+            this.showToast('GRIM/SPRITE tests - Provide means, SDs, and sample sizes to check', 'info');
+            this.log('Data fabrication detection (GRIM/SPRITE) initialized.');
+        } catch (err) {
+            this.showToast(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    /**
+     * Run Mendelian Randomization analysis
+     */
+    runMendelianRandomization() {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+
+        const FrontierMeta = window.FrontierMeta || {};
+        if (!FrontierMeta.MendelianRandomizationMA) {
+            this.showToast('Mendelian randomization module not available', 'error');
+            return;
+        }
+
+        try {
+            const mrEngine = new FrontierMeta.MendelianRandomizationMA();
+            this.showToast('Mendelian Randomization requires genetic instrument data', 'info');
+            this.log('Mendelian randomization analysis initialized.');
+        } catch (err) {
+            this.showToast(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    /**
+     * Run threshold analysis
+     */
+    runThresholdAnalysis() {
+        if (!this.project) {
+            this.showToast('Please load a project first', 'warning');
+            return;
+        }
+
+        const FrontierMeta = window.FrontierMeta || {};
+        if (!FrontierMeta.ThresholdAnalysis) {
+            this.showToast('Threshold analysis module not available', 'error');
+            return;
+        }
+
+        try {
+            const thresholdEngine = new FrontierMeta.ThresholdAnalysis();
+            this.showToast('Threshold analysis - Feature under development', 'info');
+            this.log('Threshold analysis initialized.');
+        } catch (err) {
+            this.showToast(`Error: ${err.message}`, 'error');
+        }
     }
 
     setupTabs() {
@@ -855,13 +2094,21 @@ class HTAApp {
             new Date(meta.created).toLocaleDateString() : '-';
 
         const gdpInput = document.getElementById('gdp-per-capita');
-        if (gdpInput) gdpInput.value = settings.gdp_per_capita_omr ?? guidanceDefaults.placeholder_gdp_per_capita_omr;
+        if (gdpInput) {
+            const gdpValue = settings.gdp_per_capita_omr ?? guidanceDefaults.placeholder_gdp_per_capita_omr;
+            gdpInput.value = gdpValue ? gdpValue : '';
+        }
 
         const gdpYear = document.getElementById('gdp-year');
-        if (gdpYear) gdpYear.value = settings.gdp_per_capita_year ?? guidanceDefaults.gdp_per_capita_year;
+        if (gdpYear) {
+            const yearValue = settings.gdp_per_capita_year ?? guidanceDefaults.gdp_per_capita_year;
+            gdpYear.value = yearValue ? yearValue : '';
+        }
 
         const gdpSource = document.getElementById('gdp-source');
-        if (gdpSource) gdpSource.value = settings.gdp_per_capita_source ?? guidanceDefaults.gdp_per_capita_source;
+        if (gdpSource) {
+            gdpSource.value = settings.gdp_per_capita_source ?? guidanceDefaults.gdp_per_capita_source;
+        }
 
         const gdpConfirm = document.getElementById('gdp-confirm');
         if (gdpConfirm) gdpConfirm.checked = Boolean(settings.gdp_per_capita_confirmed);
@@ -1142,14 +2389,41 @@ class HTAApp {
         document.getElementById('result-qalys-int').textContent = (intResults?.total_qalys || 0).toFixed(3);
         document.getElementById('result-qalys-comp').textContent = (compResults?.total_qalys || 0).toFixed(3);
 
-        // ICER
-        if (r.incremental && r.incremental.comparisons.length > 0) {
+        // ICER with improved user-friendly display
+        const icerEl = document.getElementById('result-icer');
+        if (r.incremental && r.incremental.comparisons && r.incremental.comparisons.length > 0) {
             const comp = r.incremental.comparisons[0];
-            if (typeof comp.icer === 'number') {
-                document.getElementById('result-icer').textContent = this.formatCurrency(comp.icer, 0);
+            const incCost = comp.incremental_costs || 0;
+            const incQaly = comp.incremental_qalys || 0;
+
+            if (typeof comp.icer === 'number' && Number.isFinite(comp.icer)) {
+                if (comp.icer < 0) {
+                    icerEl.textContent = 'Dominant (cost-saving)';
+                    icerEl.style.color = 'var(--success)';
+                } else {
+                    icerEl.textContent = this.formatCurrency(comp.icer, 0);
+                    icerEl.style.color = '';
+                }
+            } else if (comp.dominance) {
+                icerEl.textContent = comp.dominance;
+                icerEl.style.color = comp.dominance.toLowerCase().includes('domin') ? 'var(--success)' : 'var(--warning)';
+            } else if (Math.abs(incQaly) < 0.0001) {
+                icerEl.textContent = 'No QALY difference';
+                icerEl.style.color = 'var(--text-muted)';
+            } else if (Math.abs(incCost) < 0.01 && incQaly > 0) {
+                icerEl.textContent = 'Cost-neutral, QALY gain';
+                icerEl.style.color = 'var(--success)';
             } else {
-                document.getElementById('result-icer').textContent = comp.dominance || comp.icer;
+                icerEl.textContent = 'Unable to calculate';
+                icerEl.style.color = 'var(--text-muted)';
             }
+
+            // Show ICER interpretation
+            this.showIcerInterpretation(comp.icer, incCost, incQaly);
+        } else {
+            icerEl.textContent = 'No comparison available';
+            icerEl.style.color = 'var(--text-muted)';
+            this.hideIcerInterpretation();
         }
 
         // Render trace chart
@@ -1157,8 +2431,79 @@ class HTAApp {
 
         this.populateValidation();
 
+        // Update results dashboard
+        this.updateResultsDashboard();
+
         // Navigate to results
         this.navigateToSection('deterministic');
+    }
+
+    /**
+     * Update the results dashboard with current data
+     */
+    updateResultsDashboard() {
+        if (!this.resultsDashboard || !this.results) return;
+
+        try {
+            const settings = this.getGuidanceSettings();
+            this.resultsDashboard.updateDashboard(this.results, settings, this.psaResults);
+        } catch (e) {
+            console.warn('Dashboard update error:', e);
+        }
+    }
+
+    showIcerInterpretation(icer, incCost, incQaly) {
+        const interpEl = document.getElementById('icer-interpretation');
+        const unitEl = document.getElementById('result-icer-unit');
+        if (!interpEl) return;
+
+        const gdp = this.getGuidanceSettings().gdp_per_capita_omr || 7800;
+        const thresholds = [gdp, gdp * 2, gdp * 3];
+        let interpretation = '';
+        let cssClass = '';
+
+        if (typeof icer === 'number' && Number.isFinite(icer)) {
+            if (icer < 0) {
+                interpretation = `<strong>Dominant:</strong> The intervention costs less AND provides more health benefits than the comparator. This is the best possible outcome - the intervention should be adopted.`;
+                cssClass = 'dominant';
+                if (unitEl) unitEl.textContent = 'cost-saving with QALY gain';
+            } else if (icer <= thresholds[0]) {
+                interpretation = `<strong>Highly Cost-Effective:</strong> At ${this.formatCurrency(icer, 0)}/QALY, this is below Oman's 1× GDP per capita threshold (${this.formatCurrency(thresholds[0], 0)}). Strong recommendation for adoption.`;
+                cssClass = 'cost-effective';
+            } else if (icer <= thresholds[1]) {
+                interpretation = `<strong>Cost-Effective:</strong> At ${this.formatCurrency(icer, 0)}/QALY, this is between 1-2× GDP per capita. Generally considered acceptable value for money in Oman.`;
+                cssClass = 'cost-effective';
+            } else if (icer <= thresholds[2]) {
+                interpretation = `<strong>Potentially Cost-Effective:</strong> At ${this.formatCurrency(icer, 0)}/QALY, this is between 2-3× GDP per capita. May be considered for high-priority conditions or severe diseases.`;
+                cssClass = 'uncertain';
+            } else {
+                interpretation = `<strong>Not Cost-Effective:</strong> At ${this.formatCurrency(icer, 0)}/QALY, this exceeds Oman's 3× GDP per capita threshold (${this.formatCurrency(thresholds[2], 0)}). Alternative options or price negotiation recommended.`;
+                cssClass = 'not-cost-effective';
+            }
+        } else if (Math.abs(incQaly) < 0.0001) {
+            interpretation = `<strong>No Health Benefit:</strong> The intervention provides no additional QALYs compared to the comparator. Consider whether other outcomes (e.g., convenience, safety) justify any cost difference.`;
+            cssClass = 'uncertain';
+            if (unitEl) unitEl.textContent = 'no QALY difference';
+        } else if (incCost > 0 && incQaly < 0) {
+            interpretation = `<strong>Dominated:</strong> The intervention costs more AND provides fewer health benefits. This is the worst outcome - the comparator should be preferred.`;
+            cssClass = 'not-cost-effective';
+            if (unitEl) unitEl.textContent = 'dominated (higher cost, fewer QALYs)';
+        }
+
+        if (interpretation) {
+            interpEl.innerHTML = interpretation;
+            interpEl.className = 'icer-interpretation ' + cssClass;
+            interpEl.style.display = 'block';
+        } else {
+            this.hideIcerInterpretation();
+        }
+    }
+
+    hideIcerInterpretation() {
+        const interpEl = document.getElementById('icer-interpretation');
+        if (interpEl) {
+            interpEl.style.display = 'none';
+        }
     }
 
     renderTraceChart(results) {
@@ -1224,6 +2569,19 @@ class HTAApp {
         const iterations = parseInt(document.getElementById('psa-iterations')?.value || '1000');
         const seed = parseInt(document.getElementById('engine-seed')?.value || '12345');
 
+        // Reset cancellation flag
+        this.operationCancelled = false;
+        this.currentOperation = 'psa';
+
+        // Show progress modal with ETA
+        const startTime = Date.now();
+        if (typeof showProgressModal === 'function') {
+            showProgressModal(
+                'Running Probabilistic Sensitivity Analysis',
+                `${iterations.toLocaleString()} Monte Carlo iterations`
+            );
+        }
+
         this.showLoading('Running PSA...');
         document.getElementById('psa-progress').style.display = 'block';
 
@@ -1231,9 +2589,19 @@ class HTAApp {
             const engine = new PSAEngine({ iterations, seed });
 
             engine.onProgress(async (current, total, results) => {
+                // Check for cancellation
+                if (this.operationCancelled) {
+                    throw new Error('Operation cancelled by user');
+                }
+
                 const pct = Math.round((current / total) * 100);
                 document.getElementById('psa-progress-bar').style.width = `${pct}%`;
                 document.getElementById('psa-progress-text').textContent = `${pct}%`;
+
+                // Update progress modal
+                if (typeof updateProgress === 'function') {
+                    updateProgress(current, total, startTime);
+                }
 
                 // Yield to update UI
                 await new Promise(resolve => setTimeout(resolve, 0));
@@ -1256,12 +2624,23 @@ class HTAApp {
             this.displayPSAResults();
             this.hideLoading();
             document.getElementById('psa-progress').style.display = 'none';
-            this.showToast('PSA complete', 'success');
+            if (typeof hideProgressModal === 'function') hideProgressModal();
+            this.currentOperation = null;
+
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            this.showToast(`PSA complete (${elapsed}s)`, 'success');
 
         } catch (e) {
             this.hideLoading();
             document.getElementById('psa-progress').style.display = 'none';
-            this.showToast(`Error: ${e.message}`, 'error');
+            if (typeof hideProgressModal === 'function') hideProgressModal();
+            this.currentOperation = null;
+
+            if (e.message === 'Operation cancelled by user') {
+                this.showToast('PSA cancelled', 'warning');
+            } else {
+                this.showToast(`Error: ${e.message}`, 'error');
+            }
         }
     }
 
@@ -1288,11 +2667,79 @@ class HTAApp {
         document.getElementById('psa-prob-ce').textContent =
             Number.isFinite(primaryProb) ? `${(primaryProb * 100).toFixed(1)}%` : '-';
 
+        // Display result interpretation
+        this.displayResultInterpretation(s, primaryWtp, primaryProb);
+
         this.renderCEPlane();
         this.renderCEAC();
         this.displayConvergenceDiagnostics();
         this.updateAuditSummary();
         this.navigateToSection('psa');
+    }
+
+    displayResultInterpretation(summary, primaryWtp, primaryProb) {
+        const panel = document.getElementById('psa-interpretation');
+        const textEl = document.getElementById('psa-interpretation-text');
+        const guidanceEl = document.getElementById('psa-guidance-text');
+
+        if (!panel || !textEl || !guidanceEl) return;
+
+        const settings = this.getGuidanceSettings();
+        const currency = settings.currency || 'OMR';
+        const meanIcer = summary.mean_icer;
+        const gdp = settings.gdp_per_capita_omr || 7800;
+
+        // Build interpretation text
+        let interpretation = '';
+        let guidance = '';
+
+        // Interpret ICER
+        if (Number.isFinite(meanIcer)) {
+            if (meanIcer < 0) {
+                interpretation += `<p><strong>Dominant:</strong> The intervention is both less costly and more effective than the comparator. This is the ideal scenario - you save money while improving health outcomes.</p>`;
+                guidance = `<strong style="color: #16a34a;">Strong recommendation to adopt.</strong> The intervention dominates the comparator, meaning it provides better outcomes at lower cost.`;
+            } else if (meanIcer < gdp) {
+                interpretation += `<p><strong>Highly Cost-Effective:</strong> The ICER of ${this.formatCurrency(meanIcer, 0)} ${currency}/QALY is below 1x GDP per capita (${this.formatCurrency(gdp, 0)} ${currency}). Per WHO guidelines, interventions below this threshold are considered "very cost-effective".</p>`;
+                guidance = `<strong style="color: #16a34a;">Recommended for adoption.</strong> The intervention provides good value for money within Oman's economic context.`;
+            } else if (meanIcer < gdp * 3) {
+                interpretation += `<p><strong>Cost-Effective:</strong> The ICER of ${this.formatCurrency(meanIcer, 0)} ${currency}/QALY is between 1-3x GDP per capita. This is generally considered acceptable but may require careful budget consideration.</p>`;
+                guidance = `<strong style="color: #d97706;">Consider adoption with budget analysis.</strong> The intervention is cost-effective but budget impact should be assessed.`;
+            } else {
+                interpretation += `<p><strong>Not Cost-Effective:</strong> The ICER of ${this.formatCurrency(meanIcer, 0)} ${currency}/QALY exceeds 3x GDP per capita. This intervention may not represent good value for money.</p>`;
+                guidance = `<strong style="color: #dc2626;">Not recommended at current pricing.</strong> Consider negotiating a lower price or targeting a more specific patient population.`;
+            }
+        }
+
+        // Interpret probability of cost-effectiveness
+        if (Number.isFinite(primaryProb)) {
+            const probPct = (primaryProb * 100).toFixed(0);
+            if (primaryProb >= 0.9) {
+                interpretation += `<p><strong>High Certainty:</strong> There is a ${probPct}% probability the intervention is cost-effective at the WTP threshold. This level of certainty supports confident decision-making.</p>`;
+            } else if (primaryProb >= 0.7) {
+                interpretation += `<p><strong>Moderate Certainty:</strong> There is a ${probPct}% probability the intervention is cost-effective. While favorable, some uncertainty remains.</p>`;
+            } else if (primaryProb >= 0.5) {
+                interpretation += `<p><strong>Uncertain:</strong> There is only a ${probPct}% probability the intervention is cost-effective. Additional evidence may be needed before making a decision.</p>`;
+            } else {
+                interpretation += `<p><strong>Unlikely Cost-Effective:</strong> There is only a ${probPct}% probability the intervention is cost-effective at this threshold. The evidence does not support adoption.</p>`;
+            }
+        }
+
+        // Add quadrant interpretation if available
+        const quadrants = this.psaResults?.quadrants;
+        if (quadrants) {
+            interpretation += `<p><strong>Uncertainty Distribution:</strong> `;
+            const nw = (quadrants.NW * 100).toFixed(0);
+            const ne = (quadrants.NE * 100).toFixed(0);
+            const sw = (quadrants.SW * 100).toFixed(0);
+            const se = (quadrants.SE * 100).toFixed(0);
+            interpretation += `${sw}% of simulations show the intervention as dominant (lower cost, better outcomes), `;
+            interpretation += `${ne}% show dominated scenarios. `;
+            interpretation += `Trade-off scenarios: ${nw}% worse but cheaper, ${se}% better but costlier.</p>`;
+        }
+
+        textEl.innerHTML = interpretation;
+        guidanceEl.innerHTML = guidance;
+        panel.style.display = 'block';
     }
 
     renderCEPlane() {
@@ -1735,7 +3182,9 @@ class HTAApp {
         const wtpThresholds = this.getWtpThresholds();
         const primaryWtp = this.getPrimaryWtp();
         const primaryWtpLabel = formatWtpLabel(primaryWtp, settings);
-        const wtpList = wtpThresholds.map((w) => formatWtpLabel(w, settings)).join(', ');
+        const wtpList = wtpThresholds.length
+            ? wtpThresholds.map((w) => formatWtpLabel(w, settings)).join(', ')
+            : 'Not set (GDP per capita required)';
         const probCEPrimary = psa?.summary
             ? (psa.summary.prob_ce?.[primaryWtp] ?? psa.summary.prob_ce_primary ?? psa.summary.prob_ce_30k)
             : null;
@@ -2138,6 +3587,11 @@ Parameter Overrides: ${summary.parameterChanges}
             });
         }
     }
+}
+
+// Explicitly attach HTAApp to window for global access
+if (typeof window !== 'undefined') {
+    window.HTAApp = HTAApp;
 }
 
 // Provide early stubs for selenium scripts

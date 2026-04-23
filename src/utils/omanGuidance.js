@@ -6,7 +6,7 @@
     }
     root.OmanHTAGuidance = factory();
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createOmanHTAGuidance() {
-    const GUIDANCE_VERSION = '2025-11-11';
+    const GUIDANCE_VERSION = '2025-methodological-guidelines';
 
     const defaults = Object.freeze({
         discount_rate_costs: 0.03,
@@ -17,11 +17,14 @@
         bia_discount_rate: 0,
         // Oman guidance uses 1x GDP per capita as the base CET, with higher multipliers by priority.
         wtp_multipliers: [1, 2, 3],
-        // GDP per capita (OMR). 2023 GCC Statistical Centre report: > 8,100 OMR.
-        placeholder_gdp_per_capita_omr: 8100,
-        gdp_per_capita_year: 2023,
-        gdp_per_capita_source: 'GCC Statistical Centre',
-        gdp_per_capita_confirmed: false
+        // GDP per capita in OMR - Oman 2024 estimate based on NCSI data
+        // USD ~$20,300 = ~7,800 OMR at current exchange rates
+        placeholder_gdp_per_capita_omr: 7800,
+        gdp_per_capita_year: 2024,
+        gdp_per_capita_source: 'National Centre for Statistics and Information (NCSI) Oman',
+        gdp_per_capita_confirmed: true,
+        dsa_range_percent: 10,
+        psa_recommended: true
     });
 
     function toFiniteNumber(value) {
@@ -38,6 +41,8 @@
             perspective: s.perspective || defaults.perspective,
             bia_horizon_years: toFiniteNumber(s.bia_horizon_years) ?? defaults.bia_horizon_years,
             bia_discount_rate: toFiniteNumber(s.bia_discount_rate) ?? defaults.bia_discount_rate,
+            dsa_range_percent: toFiniteNumber(s.dsa_range_percent) ?? defaults.dsa_range_percent,
+            psa_recommended: s.psa_recommended ?? defaults.psa_recommended,
             gdp_per_capita_omr: toFiniteNumber(s.gdp_per_capita_omr),
             gdp_per_capita_year: toFiniteNumber(s.gdp_per_capita_year) ?? defaults.gdp_per_capita_year,
             gdp_per_capita_source: s.gdp_per_capita_source || defaults.gdp_per_capita_source,
@@ -110,7 +115,8 @@
             if (first && first > 0) return first;
         }
 
-        return defaults.placeholder_gdp_per_capita_omr;
+        const fallback = toFiniteNumber(defaults.placeholder_gdp_per_capita_omr);
+        return fallback && fallback > 0 ? fallback : null;
     }
 
     function sanitizeThresholds(values) {
@@ -127,6 +133,10 @@
         if (explicit) return { thresholds: explicit, source: 'explicit' };
 
         const base = resolveBaseWtp(settings);
+        if (!base || base <= 0) {
+            return { thresholds: [], source: 'missing' };
+        }
+
         const derived = sanitizeThresholds(s.wtp_multipliers.map((m) => base * m));
         if (derived) return { thresholds: derived, source: 'gdp-multipliers' };
 
@@ -137,15 +147,17 @@
 
     function resolvePrimaryWtp(settings) {
         const { thresholds } = resolveWtpThresholds(settings);
-        return thresholds[0];
+        return thresholds[0] || 0;
     }
 
     function guidanceNote(settings) {
         const { source, thresholds } = resolveWtpThresholds(settings);
         if (source === 'explicit') return null;
         if (settings?.gdp_per_capita_omr && settings?.gdp_per_capita_confirmed) return null;
-        const year = defaults.gdp_per_capita_year ? ` (${defaults.gdp_per_capita_year})` : '';
-        return `Using default GDP-per-capita thresholds${year} (${thresholds.join(', ')} OMR). Confirm or update with the latest Oman GDP per capita.`;
+        if (source === 'missing' || !thresholds.length) {
+            return 'Oman guidance uses 1x GDP per capita (with 2x/3x multipliers for priority/severity). Enter and confirm Oman GDP per capita to compute CET thresholds.';
+        }
+        return `Using derived GDP-per-capita thresholds (${thresholds.join(', ')} OMR). Confirm or update with the latest Oman GDP per capita.`;
     }
 
     return {

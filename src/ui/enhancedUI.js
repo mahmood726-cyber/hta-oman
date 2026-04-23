@@ -1023,6 +1023,154 @@ class I18n {
                 'result.qaly': 'QALY',
                 'msg.loading': '読み込み中...',
                 'msg.complete': '完了'
+            },
+
+            // Arabic - RTL language support for Oman
+            ar: {
+                // General
+                'app.title': 'منصة تقييم التقنيات الصحية - عُمان',
+                'app.version': 'الإصدار {version}',
+                'app.subtitle': 'إصدار سلطنة عُمان',
+
+                // Navigation
+                'nav.model': 'النموذج',
+                'nav.results': 'النتائج',
+                'nav.validation': 'التحقق',
+                'nav.settings': 'الإعدادات',
+                'nav.parameters': 'المعاملات',
+                'nav.states': 'الحالات',
+                'nav.transitions': 'الانتقالات',
+                'nav.strategies': 'الاستراتيجيات',
+                'nav.evidence': 'الأدلة',
+                'nav.metaAnalysis': 'التحليل التجميعي',
+                'nav.budgetImpact': 'تأثير الميزانية',
+
+                // Actions
+                'action.save': 'حفظ',
+                'action.saveAs': 'حفظ باسم',
+                'action.open': 'فتح',
+                'action.new': 'مشروع جديد',
+                'action.run': 'تشغيل النموذج',
+                'action.runPSA': 'تشغيل تحليل الحساسية الاحتمالي',
+                'action.runDSA': 'تشغيل تحليل الحساسية الحتمي',
+                'action.export': 'تصدير',
+                'action.import': 'استيراد',
+                'action.cancel': 'إلغاء',
+                'action.confirm': 'تأكيد',
+                'action.delete': 'حذف',
+                'action.edit': 'تعديل',
+                'action.undo': 'تراجع',
+                'action.redo': 'إعادة',
+                'action.loadDemo': 'تحميل العرض التوضيحي',
+                'action.validate': 'التحقق من الصحة',
+
+                // Model types
+                'model.markov': 'نموذج ماركوف الجماعي',
+                'model.microsim': 'المحاكاة الدقيقة',
+                'model.psa': 'تحليل الحساسية الاحتمالي',
+                'model.dsa': 'تحليل الحساسية الحتمي',
+                'model.partitioned': 'تحليل البقاء المجزأ',
+                'model.des': 'محاكاة الأحداث المنفصلة',
+                'model.budgetImpact': 'تحليل تأثير الميزانية',
+
+                // States
+                'state.alive': 'على قيد الحياة',
+                'state.dead': 'متوفى',
+                'state.healthy': 'صحي',
+                'state.sick': 'مريض',
+                'state.progression': 'تقدم المرض',
+                'state.stable': 'مستقر',
+                'state.progressed': 'متقدم',
+
+                // Parameters
+                'param.cost': 'التكلفة',
+                'param.utility': 'المنفعة',
+                'param.probability': 'الاحتمالية',
+                'param.rate': 'المعدل',
+                'param.hazardRatio': 'نسبة الخطر',
+                'param.discount': 'معدل الخصم',
+                'param.timeHorizon': 'الأفق الزمني',
+                'param.cycleLength': 'طول الدورة',
+
+                // Results
+                'result.icer': 'نسبة التكلفة-الفعالية التزايدية',
+                'result.nmb': 'صافي المنفعة النقدية',
+                'result.qaly': 'سنوات الحياة المعدلة بالجودة',
+                'result.lys': 'سنوات الحياة',
+                'result.totalCost': 'التكلفة الإجمالية',
+                'result.incrementalCost': 'التكلفة التزايدية',
+                'result.incrementalEffect': 'الفعالية التزايدية',
+                'result.costEffective': 'فعال من حيث التكلفة',
+                'result.dominated': 'مهيمن عليه',
+                'result.dominant': 'مهيمن',
+
+                // Validation
+                'validation.passed': 'نجح التحقق',
+                'validation.failed': 'فشل التحقق',
+                'validation.warnings': '{count} تحذير(ات)',
+                'validation.errors': '{count} خطأ(أخطاء)',
+                'validation.info': 'معلومات',
+
+                // Messages
+                'msg.loading': 'جاري التحميل...',
+                'msg.saving': 'جاري الحفظ...',
+                'msg.running': 'جاري تشغيل المحاكاة...',
+                'msg.complete': 'اكتمل',
+                'msg.error': 'حدث خطأ',
+                'msg.unsavedChanges': 'لديك تغييرات غير محفوظة',
+                'msg.confirmDelete': 'هل أنت متأكد من الحذف؟',
+                'msg.analysisComplete': 'اكتمل التحليل',
+                'msg.validationComplete': 'اكتمل التحقق',
+
+                // Help
+                'help.shortcuts': 'اختصارات لوحة المفاتيح',
+                'help.documentation': 'الوثائق',
+                'help.about': 'حول',
+                'help.guidance': 'إرشادات وزارة الصحة',
+
+                // Time
+                'time.seconds': '{n} ثانية',
+                'time.minutes': '{n} دقيقة',
+                'time.hours': '{n} ساعة',
+                'time.days': '{n} يوم',
+                'time.years': '{n} سنة',
+                'time.cycles': '{n} دورة',
+
+                // Oman-specific
+                'oman.moh': 'وزارة الصحة - سلطنة عُمان',
+                'oman.guidance': 'إرشادات تقييم التقنيات الصحية',
+                'oman.perspective': 'منظور الدافع/مقدم الخدمة',
+                'oman.currency': 'ريال عُماني',
+                'oman.discountRate': 'معدل الخصم (3%)',
+                'oman.biaHorizon': 'أفق تأثير الميزانية (4 سنوات)',
+                'oman.gdpThreshold': 'عتبة الناتج المحلي الإجمالي',
+                'oman.coi': 'إفصاح تضارب المصالح',
+                'oman.publicDossier': 'الملف العام',
+
+                // Cost database
+                'costs.database': 'قاعدة بيانات التكاليف',
+                'costs.medication': 'تكاليف الأدوية',
+                'costs.procedure': 'تكاليف الإجراءات',
+                'costs.hospitalization': 'تكاليف الإقامة بالمستشفى',
+                'costs.consultation': 'تكاليف الاستشارات',
+                'costs.laboratory': 'تكاليف المختبر',
+                'costs.imaging': 'تكاليف التصوير',
+
+                // Formulary
+                'formulary.title': 'قائمة الأدوية الوطنية',
+                'formulary.search': 'البحث في القائمة',
+                'formulary.category': 'الفئة العلاجية',
+                'formulary.status': 'حالة الإدراج',
+
+                // GCC sharing
+                'gcc.share': 'مشاركة مع دول الخليج',
+                'gcc.region': 'المنطقة',
+                'gcc.oman': 'عُمان',
+                'gcc.uae': 'الإمارات',
+                'gcc.saudi': 'السعودية',
+                'gcc.qatar': 'قطر',
+                'gcc.bahrain': 'البحرين',
+                'gcc.kuwait': 'الكويت'
             }
         };
     }

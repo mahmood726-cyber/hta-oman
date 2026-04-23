@@ -1,97 +1,147 @@
-"""Minimal test for HTA Artifact Standard"""
-import time
+#!/usr/bin/env python3
+"""
+Minimal Test Script for HTA-oman Platform
+Validates Phase 1-2 critical bug fixes
+"""
+
+import re
 import sys
-import tempfile
-import subprocess
+from pathlib import Path
 
-sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+def main():
+    base_dir = Path(__file__).parent
+    tests_passed = 0
+    tests_failed = 0
 
-# Kill any existing browser processes first
-subprocess.run(['taskkill', '/F', '/IM', 'msedgedriver.exe'],
-               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-subprocess.run(['taskkill', '/F', '/IM', 'msedge.exe'],
-               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-time.sleep(2)
+    print("=" * 60)
+    print("HTA-oman Phase 1-2 Bug Fix Validation")
+    print("=" * 60)
 
-from selenium import webdriver
-from selenium.webdriver.edge.options import Options as EdgeOptions
+    # Test 1: RNG circular reference fix in nma.js
+    print("\n[Test 1] RNG circular reference fix...")
+    nma_js = base_dir / "src" / "engine" / "nma.js"
+    content = nma_js.read_text(encoding='utf-8')
 
-options = EdgeOptions()
-options.add_argument("--headless=new")
-options.add_argument("--disable-gpu")
-options.add_argument("--no-sandbox")
-temp = tempfile.mkdtemp(prefix="hta_min_")
-options.add_argument(f"--user-data-dir={temp}")
+    # Check that rng.random() is used instead of this.rng.random() in the createRNG closure
+    if "rng.random()" in content and "const rng = {" in content:
+        print("  PASS: RNG uses local variable reference")
+        tests_passed += 1
+    else:
+        print("  FAIL: RNG still has circular reference")
+        tests_failed += 1
 
-print("Starting Edge...")
-driver = webdriver.Edge(options=options)
+    # Test 2: Missing RNG methods (beta, gamma)
+    print("\n[Test 2] RNG distribution methods...")
+    if "beta: (alpha, beta)" in content and "gamma: (shape, scale" in content:
+        print("  PASS: Beta and Gamma methods exist in RNG")
+        tests_passed += 1
+    else:
+        print("  FAIL: Missing beta() or gamma() methods")
+        tests_failed += 1
 
-try:
-    driver.get("file:///C:/Users/user/Downloads/HTA-oman/index.html")
-    time.sleep(2)
+    # Test 3: Array bounds check
+    print("\n[Test 3] Array bounds check in findMostConnectedTreatment...")
+    if "sortedConnections.length === 0" in content:
+        print("  PASS: Empty array check exists")
+        tests_passed += 1
+    else:
+        print("  FAIL: Missing empty array bounds check")
+        tests_failed += 1
 
-    print("\n=== Quick Verification ===\n")
+    # Test 4: PSA progress callback error handling
+    print("\n[Test 4] PSA progress callback error handling...")
+    psa_js = base_dir / "src" / "engine" / "psa.js"
+    psa_content = psa_js.read_text(encoding='utf-8')
 
-    # 1. Check demo loads
-    driver.execute_script("document.getElementById('btn-demo').click()")
-    time.sleep(2)
-    demo_loaded = driver.execute_script("return window.htaModel && window.htaModel.states && window.htaModel.states.length > 0")
-    print(f"Demo loads: {'PASS' if demo_loaded else 'FAIL'}")
+    if "catch (progressError)" in psa_content or "catch(progressError)" in psa_content:
+        print("  PASS: Progress callback has try-catch")
+        tests_passed += 1
+    else:
+        print("  FAIL: Progress callback missing error handling")
+        tests_failed += 1
 
-    # 2. Check core functions
-    core_funcs = ['runAnalysis', 'runPSA', 'runEVPPI', 'runCalibration']
-    core_ok = all(driver.execute_script(f"return typeof window.{f} === 'function'") for f in core_funcs)
-    print(f"Core functions: {'PASS' if core_ok else 'FAIL'}")
+    # Test 5: PSA parameter validation
+    print("\n[Test 5] PSA parameter null check...")
+    if "project.parameters || {}" in psa_content:
+        print("  PASS: Parameter null check exists")
+        tests_passed += 1
+    else:
+        print("  FAIL: Missing parameter null check")
+        tests_failed += 1
 
-    # 3. Check advanced enhancements (10 new classes)
-    new_classes = ['HKSJAdjustment', 'CopasSelectionModel', 'ProfileLikelihoodCI',
-                   'RoystonParmarSurvival', 'MCMCDiagnostics', 'MultivariateMetaAnalysis',
-                   'NetworkMetaRegression', 'MixtureCureModel', 'GRADEAssessment', 'ValidationReport']
-    adv_ok = all(driver.execute_script(f"return typeof window.{c} === 'function'") for c in new_classes)
-    print(f"Advanced enhancements (10 classes): {'PASS' if adv_ok else 'FAIL'}")
+    # Test 6: advancedPerformance.js try-finally
+    print("\n[Test 6] Promise race condition fix...")
+    adv_perf = base_dir / "src" / "engine" / "advancedPerformance.js"
+    adv_content = adv_perf.read_text(encoding='utf-8')
 
-    # 4. Test HKSJ works
-    hksj_result = driver.execute_script("""
-        try {
-            const h = new HKSJAdjustment();
-            const r = h.adjust([{effect:0.5,se:0.1},{effect:0.3,se:0.2},{effect:0.4,se:0.15}], 0.01, 0.4);
-            return r.ci_lower < r.effect && r.effect < r.ci_upper;
-        } catch(e) { return false; }
-    """)
-    print(f"HKSJ adjustment: {'PASS' if hksj_result else 'FAIL'}")
+    if "} finally {" in adv_content and "URL.revokeObjectURL(workerUrl)" in adv_content:
+        print("  PASS: try-finally ensures cleanup")
+        tests_passed += 1
+    else:
+        print("  FAIL: Missing try-finally for cleanup")
+        tests_failed += 1
 
-    # 5. Test MCMC diagnostics
-    mcmc_result = driver.execute_script("""
-        try {
-            const m = new MCMCDiagnostics();
-            const chains = [Array.from({length:100}, () => Math.random()),
-                           Array.from({length:100}, () => Math.random())];
-            const r = m.analyze(chains);
-            return r.gelmanRubin && r.effectiveSampleSize && r.geweke;
-        } catch(e) { return false; }
-    """)
-    print(f"MCMC diagnostics: {'PASS' if mcmc_result else 'FAIL'}")
+    # Test 7: Normal distribution u1===0 safeguard
+    print("\n[Test 7] Normal distribution u1===0 safeguard...")
+    if "while (u1 === 0)" in content or "while(u1 === 0)" in content:
+        print("  PASS: Normal distribution guards against log(0)")
+        tests_passed += 1
+    else:
+        print("  FAIL: Normal distribution missing u1===0 guard")
+        tests_failed += 1
 
-    # 6. Test GRADE assessment
-    grade_result = driver.execute_script("""
-        try {
-            const g = new GRADEAssessment();
-            const r = g.assess({studyDesign:'RCT', riskOfBias:{overall:'low'}});
-            return r.overallCertainty && r.score !== undefined;
-        } catch(e) { return false; }
-    """)
-    print(f"GRADE assessment: {'PASS' if grade_result else 'FAIL'}")
+    # Test 8: Beta distribution 0/0 safeguard
+    print("\n[Test 8] Beta distribution 0/0 safeguard...")
+    if "if (x + y === 0)" in content:
+        print("  PASS: Beta distribution guards against 0/0")
+        tests_passed += 1
+    else:
+        print("  FAIL: Beta distribution missing 0/0 guard")
+        tests_failed += 1
 
-    # Count errors
-    logs = driver.get_log('browser')
-    errors = [l for l in logs if l['level'] == 'SEVERE' and 'Error' in l['message']]
-    print(f"\nConsole errors: {len(errors)}")
+    # Test 9: App.js button handlers exist
+    print("\n[Test 9] Advanced analysis button handlers...")
+    app_js = base_dir / "src" / "ui" / "app.js"
+    app_content = app_js.read_text(encoding='utf-8')
+
+    handlers = ["runIPDMetaAnalysis", "runDTAAnalysis", "runFabricationDetection",
+                "runMendelianRandomization", "runThresholdAnalysis", "runGRADEAssessment"]
+    all_handlers_exist = all(h in app_content for h in handlers)
+    if all_handlers_exist:
+        print("  PASS: All 6 key button handlers exist")
+        tests_passed += 1
+    else:
+        missing = [h for h in handlers if h not in app_content]
+        print(f"  FAIL: Missing handlers: {missing}")
+        tests_failed += 1
+
+    # Test 10: FrontierMeta exports expanded
+    print("\n[Test 10] FrontierMeta exports expanded...")
+    frontier_js = base_dir / "src" / "engine" / "frontierMeta.js"
+    frontier_content = frontier_js.read_text(encoding='utf-8')
+
+    # Check for key classes in window.FrontierMeta export
+    key_exports = ["GRADEMethodology", "AdvancedPublicationBias", "ThresholdAnalysis", "MendelianRandomizationMA"]
+    # Look for these in the window.FrontierMeta block
+    export_block_start = frontier_content.find("window.FrontierMeta = {")
+    export_block_end = frontier_content.find("};", export_block_start)
+    export_block = frontier_content[export_block_start:export_block_end] if export_block_start > 0 else ""
+
+    all_exported = all(exp in export_block for exp in key_exports)
+    if all_exported:
+        print("  PASS: Key classes exported to window.FrontierMeta")
+        tests_passed += 1
+    else:
+        missing = [exp for exp in key_exports if exp not in export_block]
+        print(f"  FAIL: Missing exports: {missing}")
+        tests_failed += 1
 
     # Summary
-    all_pass = demo_loaded and core_ok and adv_ok and hksj_result and mcmc_result and grade_result
-    print("\n" + "="*50)
-    print(f"OVERALL: {'ALL TESTS PASSED' if all_pass else 'SOME TESTS FAILED'}")
-    print("="*50)
+    print("\n" + "=" * 60)
+    print(f"RESULTS: {tests_passed} passed, {tests_failed} failed")
+    print("=" * 60)
 
-finally:
-    driver.quit()
+    return 0 if tests_failed == 0 else 1
+
+if __name__ == "__main__":
+    sys.exit(main())

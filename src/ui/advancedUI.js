@@ -152,21 +152,32 @@ class AdvancedFeaturesUI {
 
         container.style.display = 'block';
 
-        // Summary statistics
+        // Summary statistics - handle both camelCase and snake_case property names
         const s = results.summary || {};
         const meanCost = s.meanCost ?? s.mean_costs;
+        const meanQaly = s.meanQALY ?? s.mean_qalys;
+        const meanLy = s.meanLY ?? s.mean_lys;
+
         document.getElementById('microsim-mean-cost').textContent =
             Number.isFinite(meanCost) ? this.app.formatCurrency(meanCost, 2) : '-';
-        document.getElementById('microsim-mean-qaly').textContent = Number.isFinite(s.meanQALY) ? s.meanQALY.toFixed(4) : '-';
-        document.getElementById('microsim-mean-ly').textContent = Number.isFinite(s.meanLY) ? s.meanLY.toFixed(2) : '-';
+        document.getElementById('microsim-mean-qaly').textContent =
+            Number.isFinite(meanQaly) ? meanQaly.toFixed(4) : '-';
+        document.getElementById('microsim-mean-ly').textContent =
+            Number.isFinite(meanLy) ? meanLy.toFixed(2) : '-';
 
-        if (s.costCI) {
+        // Handle CI as array or as separate lower/upper properties
+        const costCiLower = s.costCI?.[0] ?? s.ci_costs_lower;
+        const costCiUpper = s.costCI?.[1] ?? s.ci_costs_upper;
+        if (Number.isFinite(costCiLower) && Number.isFinite(costCiUpper)) {
             document.getElementById('microsim-cost-ci').textContent =
-                `[${this.app.formatCurrency(s.costCI[0], 0)} - ${this.app.formatCurrency(s.costCI[1], 0)}]`;
+                `[${this.app.formatCurrency(costCiLower, 0)} - ${this.app.formatCurrency(costCiUpper, 0)}]`;
         }
-        if (s.qalyCI) {
+
+        const qalyCiLower = s.qalyCI?.[0] ?? s.ci_qalys_lower;
+        const qalyCiUpper = s.qalyCI?.[1] ?? s.ci_qalys_upper;
+        if (Number.isFinite(qalyCiLower) && Number.isFinite(qalyCiUpper)) {
             document.getElementById('microsim-qaly-ci').textContent =
-                `[${s.qalyCI[0].toFixed(4)} - ${s.qalyCI[1].toFixed(4)}]`;
+                `[${qalyCiLower.toFixed(4)} - ${qalyCiUpper.toFixed(4)}]`;
         }
 
         // State time distribution
@@ -647,11 +658,18 @@ class AdvancedFeaturesUI {
     }
 
     evaluateExpression(expr, params) {
-        let evalExpr = expr;
-        for (const [key, val] of Object.entries(params)) {
-            evalExpr = evalExpr.replace(new RegExp(key, 'g'), val);
+        // Use safe expression parser instead of eval()
+        if (typeof ExpressionParser !== 'undefined' && ExpressionParser.evaluate) {
+            try {
+                return ExpressionParser.evaluate(expr, params);
+            } catch (e) {
+                console.warn(`Expression evaluation failed for "${expr}":`, e.message);
+                return 0;
+            }
         }
-        return eval(evalExpr);
+        // Fallback: simple numeric parsing if expression is just a number
+        const num = parseFloat(expr);
+        return isNaN(num) ? 0 : num;
     }
 
     displayDESResults(results) {
@@ -973,8 +991,11 @@ class AdvancedFeaturesUI {
 document.addEventListener('DOMContentLoaded', () => {
     // Wait for main app to initialize
     setTimeout(() => {
-        if (window.htaApp) {
-            window.advancedUI = new AdvancedFeaturesUI(window.htaApp);
+        const app = window.app || window.htaApp;
+        if (app) {
+            window.advancedUI = new AdvancedFeaturesUI(app);
+            // Also attach to app for easy access
+            app.advancedUI = window.advancedUI;
         }
     }, 100);
 });
