@@ -8,9 +8,12 @@ from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 
 
+REPO_ROOT = Path(__file__).resolve().parent
+
+
 @pytest.fixture(scope="session")
 def file_path():
-    return str(Path(__file__).resolve().parent / "index.html")
+    return str(REPO_ROOT / "index.html")
 
 
 @pytest.fixture(scope="session")

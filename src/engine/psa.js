@@ -310,6 +310,9 @@ class PSAEngine {
                     }
                     L[i][j] = Math.sqrt(val);
                 } else {
+                    if (L[j][j] === 0) {
+                        throw new Error('Matrix is singular: zero diagonal element in Cholesky factor');
+                    }
                     L[i][j] = (matrix[i][j] - sum) / L[j][j];
                 }
             }

@@ -29,30 +29,44 @@ The HTA Artifact Standard provides:
 ## Project Structure
 
 ```
-HTA/
-├── index.html              # Main web application
+hta-oman/
+├── index.html              # Main web application (single-page)
+├── service-worker.js       # PWA / offline support
+├── manifest.json           # PWA manifest
 ├── src/
-│   ├── validator/          # Validation logic
-│   │   ├── schema.js       # JSON Schema validation
-│   │   ├── semantic.js     # HTA semantic rules
-│   │   └── validator.js    # Main validator
-│   ├── engine/             # Simulation engines
-│   │   ├── markov.js       # Markov cohort engine
-│   │   └── psa.js          # PSA engine
-│   ├── parser/
-│   │   └── expression.js   # Expression language parser
-│   ├── utils/
-│   │   ├── kahan.js        # Kahan summation
-│   │   └── pcg32.js        # PCG32 RNG
-│   └── ui/
-│       └── app.js          # UI controller
+│   ├── validator/          # Schema + semantic validation
+│   ├── engine/             # Markov, PSA, NMA, survival, meta-analysis, …
+│   ├── parser/             # Expression-language parser
+│   ├── utils/              # Kahan summation, PCG32, life tables, audit, …
+│   └── ui/                 # App + visualization controllers
 ├── schemas/                # JSON Schema definitions
-│   ├── project.schema.json
-│   └── results.schema.json
-└── reference-models/       # Golden test fixtures
-    ├── markov_simple/
-    ├── markov_age_dependent/
-    └── psa_demo/
+├── reference-models/       # Golden test fixtures
+│   ├── markov_simple/
+│   ├── markov_age_dependent/
+│   └── psa_demo/
+├── tests/
+│   ├── engine/             # Jest unit tests (run via `npm test`)
+│   ├── editorialRevisions.test.js
+│   └── selenium/           # End-to-end browser tests (pytest)
+├── docs/
+│   ├── protocol.md
+│   ├── reports/            # Editorial reviews, benchmarks, change logs
+│   └── oman-hta-guidance.html
+└── e156-submission/        # E156 publication bundle
+```
+
+## Development
+
+```bash
+# JavaScript
+npm install
+npm test              # Jest unit tests
+npm run lint          # ESLint
+npm run format        # Prettier
+npm run serve         # Local static server
+
+# Python (selenium UI tests — require a browser driver on PATH)
+pytest tests/selenium
 ```
 
 ## Model Types

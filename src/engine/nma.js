@@ -370,40 +370,6 @@ class NetworkMetaAnalysis {
     }
 
     /**
-     * Invert a symmetric positive definite matrix
-     * Used for multi-arm trial precision matrices
-     */
-    invertMatrix(A) {
-        const n = A.length;
-        const augmented = A.map((row, i) => [...row, ...Array(n).fill(0).map((_, j) => i === j ? 1 : 0)]);
-
-        // Gaussian elimination with partial pivoting
-        for (let i = 0; i < n; i++) {
-            let maxRow = i;
-            for (let k = i + 1; k < n; k++) {
-                if (Math.abs(augmented[k][i]) > Math.abs(augmented[maxRow][i])) {
-                    maxRow = k;
-                }
-            }
-            [augmented[i], augmented[maxRow]] = [augmented[maxRow], augmented[i]];
-
-            const pivot = augmented[i][i];
-            if (Math.abs(pivot) < 1e-10) continue;
-
-            for (let j = 0; j < 2 * n; j++) augmented[i][j] /= pivot;
-
-            for (let k = 0; k < n; k++) {
-                if (k !== i) {
-                    const factor = augmented[k][i];
-                    for (let j = 0; j < 2 * n; j++) augmented[k][j] -= factor * augmented[i][j];
-                }
-            }
-        }
-
-        return augmented.map(row => row.slice(n));
-    }
-
-    /**
      * Calculate odds ratio and variance
      */
     calculateOddsRatio(a, b, c, d) {

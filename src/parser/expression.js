@@ -61,9 +61,17 @@ const FUNCTIONS = {
 
     // HTA-specific functions
     rate_to_prob: (rate, time = 1) => 1 - Math.exp(-rate * time),
-    prob_to_rate: (prob, time = 1) => -Math.log(1 - prob) / time,
+    prob_to_rate: (prob, time = 1) => {
+        if (prob <= 0) return 0;
+        if (prob >= 1) return Infinity;
+        return -Math.log(1 - prob) / time;
+    },
     odds_to_prob: (odds) => odds / (1 + odds),
-    prob_to_odds: (prob) => prob / (1 - prob),
+    prob_to_odds: (prob) => {
+        if (prob <= 0) return 0;
+        if (prob >= 1) return Infinity;
+        return prob / (1 - prob);
+    },
     clamp: (x, min, max) => Math.max(min, Math.min(max, x)),
 
     // Conditional

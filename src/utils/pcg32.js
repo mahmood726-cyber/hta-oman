@@ -81,6 +81,9 @@ class PCG32 {
      * @returns {number} Random integer
      */
     nextInt(min, max) {
+        if (max < min) {
+            throw new RangeError(`nextInt: max (${max}) must be >= min (${min})`);
+        }
         const range = max - min + 1;
         return min + (this.nextU32() % range);
     }
