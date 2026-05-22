@@ -14,7 +14,7 @@
     "validate": "npm run lint && npm run test",
     "serve": "npx serve .",
     "start": "npx serve . -p 3000",
-    "check-syntax": "for f in src/**/*.js; do node -c \"$f\" || exit 1; done",
+    "check-syntax": "find src -name '*.js' -print0 | xargs -0 -n1 node -c",
     "audit": "npm audit --audit-level=moderate",
     "prepare": "husky install || true"
   },
