@@ -177,9 +177,11 @@ class EVSICalculator {
     }
 
     _updatePrior(prior, data, n) {
-        // Conjugate Bayesian update for normal-normal
+        // Conjugate Bayesian update for normal-normal.
+        // data.se is the SE of the sample mean (from _meanSE), so its
+        // precision is 1/data.se^2 (n is already baked into data.se).
         const priorPrecision = 1 / (prior.se ** 2);
-        const dataPrecision = n / (data.se ** 2 * n);
+        const dataPrecision = 1 / (data.se ** 2);
 
         const posteriorPrecision = priorPrecision + dataPrecision;
         const posteriorMean = (prior.mean * priorPrecision + data.mean * dataPrecision) / posteriorPrecision;
@@ -319,15 +321,20 @@ class BayesianModelAveraging {
         const meanTime = eventTimes.reduce((a, b) => a + b, 0) / n;
         const varTime = eventTimes.reduce((s, t) => s + (t - meanTime) ** 2, 0) / (n - 1);
 
+        const safeMean = meanTime > 0 ? meanTime : 1e-6;
+        const safeVar = varTime > 0 ? varTime : 1e-12;
+
         switch (dist) {
-            case 'exponential':
-                return { rate: n / eventTimes.reduce((a, b) => a + b, 0) };
+            case 'exponential': {
+                const sum = eventTimes.reduce((a, b) => a + b, 0);
+                return { rate: sum > 0 ? n / sum : 1 };
+            }
 
             case 'weibull': {
                 // Method of moments approximation
-                const cv = Math.sqrt(varTime) / meanTime;
+                const cv = Math.sqrt(safeVar) / safeMean;
                 const shape = cv > 0 ? 1.2 / cv : 1; // Approximate
-                const scale = meanTime / this._gamma(1 + 1 / shape);
+                const scale = safeMean / this._gamma(1 + 1 / shape);
                 return { shape: Math.max(0.1, shape), scale: Math.max(0.01, scale) };
             }
 
@@ -346,17 +353,17 @@ class BayesianModelAveraging {
 
             case 'gompertz': {
                 // Simple estimate
-                return { shape: 0.01, rate: 1 / meanTime };
+                return { shape: 0.01, rate: 1 / safeMean };
             }
 
             case 'gamma': {
-                const shape = meanTime ** 2 / varTime;
-                const rate = meanTime / varTime;
+                const shape = safeMean ** 2 / safeVar;
+                const rate = safeMean / safeVar;
                 return { shape: Math.max(0.1, shape), rate: Math.max(0.01, rate) };
             }
 
             default:
-                return { rate: 1 / meanTime };
+                return { rate: 1 / safeMean };
         }
     }
 
@@ -557,13 +564,15 @@ class FlexibleSurvival {
 
             row.push(t); // Linear term
 
-            // Cubic spline basis functions
+            // Truncated cubic spline basis (difference between two knot powers).
+            // NOTE: This is a simplified basis, not the full Royston-Parmar
+            // formulation, which also uses boundary-knot lambdas.
             for (let j = 0; j < nBasis - 1; j++) {
                 const knot1 = Math.log(knots[j]);
                 const knot2 = Math.log(knots[nBasis]);
 
                 const basis = Math.max(0, Math.pow(t - knot1, 3)) -
-                    Math.max(0, Math.pow(t - knot2, 3)) * (knot2 - knot1) / (knot2 - knot1);
+                    Math.max(0, Math.pow(t - knot2, 3));
 
                 row.push(basis);
             }
