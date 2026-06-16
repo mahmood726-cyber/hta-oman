@@ -64,7 +64,7 @@ class AIInterpretationEngine {
                 RR: 1.2,
                 HR: 1.15
             },
-           _willingness_to_pay: {
+            willingnessToPay: {
                 oman: defaultWtp, // OMR/QALY
                 custom: null
             }
@@ -158,7 +158,7 @@ class AIInterpretationEngine {
             `across ${nStudies} studies. ${this.interpretNetworkGeometry(results.network)}`;
 
         // 2. Ranking interpretation
-        interpretation.rankingInterpretation = this.interceptRankings(
+        interpretation.rankingInterpretation = this.interpretRankings(
             results.sucra,
             results.pScores,
             results.treatments
@@ -344,7 +344,7 @@ class AIInterpretationEngine {
     // NMA-SPECIFIC INTERPRETATIONS
     // ============================================================
 
-    interceptRankings(sucra, pScores, treatments) {
+    interpretRankings(sucra, pScores, treatments) {
         if (!sucra || !pScores) return '';
 
         // Find best treatment

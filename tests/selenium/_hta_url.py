@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-_REPO_ROOT = Path(__file__).resolve().parent
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def hta_oman_index_path() -> Path:

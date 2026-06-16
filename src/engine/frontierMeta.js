@@ -2063,7 +2063,7 @@ class MLAssistedScreening {
         if (usePatterns) {
             // Population patterns
             const popPatterns = [
-                /(?:patients?|subjects?|participants?|adults?|children|individuals?)\s+(?:with|diagnosed with|suffering from)\s+([^,\.]+)/gi,
+                /(?:patients?|subjects?|participants?|adults?|children|individuals?)\s+(?:with|diagnosed with|suffering from)\s+([^,.]+)/gi,
                 /(?:in|among)\s+(\d+)\s+(?:patients?|subjects?|participants?)/gi
             ];
             popPatterns.forEach(pattern => {
@@ -2075,8 +2075,8 @@ class MLAssistedScreening {
 
             // Intervention patterns
             const intPatterns = [
-                /(?:treated with|received|administered|given)\s+([^,\.]+?)(?:\s+(?:versus|vs\.?|compared|or)\s+)/gi,
-                /(?:intervention|treatment)\s+(?:group|arm)?\s*:?\s*([^,\.]+)/gi
+                /(?:treated with|received|administered|given)\s+([^,.]+?)(?:\s+(?:versus|vs\.?|compared|or)\s+)/gi,
+                /(?:intervention|treatment)\s+(?:group|arm)?\s*:?\s*([^,.]+)/gi
             ];
             intPatterns.forEach(pattern => {
                 const matches = text.matchAll(pattern);
@@ -2087,7 +2087,7 @@ class MLAssistedScreening {
 
             // Comparator patterns
             const compPatterns = [
-                /(?:versus|vs\.?|compared (?:with|to))\s+([^,\.]+)/gi,
+                /(?:versus|vs\.?|compared (?:with|to))\s+([^,.]+)/gi,
                 /(?:control|placebo)\s+(?:group|arm)?/gi
             ];
             compPatterns.forEach(pattern => {
@@ -2099,8 +2099,8 @@ class MLAssistedScreening {
 
             // Outcome patterns
             const outPatterns = [
-                /(?:primary|secondary|main)\s+(?:outcome|endpoint)\s+(?:was|were|included)?\s*:?\s*([^,\.]+)/gi,
-                /(?:measured|assessed|evaluated)\s+([^,\.]+)/gi
+                /(?:primary|secondary|main)\s+(?:outcome|endpoint)\s+(?:was|were|included)?\s*:?\s*([^,.]+)/gi,
+                /(?:measured|assessed|evaluated)\s+([^,.]+)/gi
             ];
             outPatterns.forEach(pattern => {
                 const matches = text.matchAll(pattern);
